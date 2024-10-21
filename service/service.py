@@ -1,5 +1,8 @@
+from utils.pdf_utility import extract_text_and_images
+
+
 class Service:
-    
+
     def __init__(self, mongodb_client, faiss_index):
         """
         Initialize the Service class with MongoDB client and FAISS index for vector storage.
@@ -26,24 +29,31 @@ class Service:
         # After saving to DB, create embeddings in FAISS
         self.store_vector(self.create_vector(text), {"file_path": file_path})
 
-    #KANISHK 
+    # KANISHK
     def create_pdf_embedding(self, file_path):
         """
         Extracts text from a PDF file and returns it.
         """
         # Logic to extract text from PDF goes here
         # Extract text from Image
-        pass
-    
-    #ALISHA 
+        try:
+            text_content = extract_text_and_images(file_path)
+        except Exception as e:
+            print(f"Error extracting text from PDF: {e}")
+            text_content = ["[Error extracting text from PDF]"]
+
+        return text_content
+
+    # ALISHA
+
     def create_text_embedding(self, file_path):
         """
         Extracts text from a text file and returns it.
         """
         # Logic to extract text from a text file goes here
         pass
-    
-    #ALISHA 
+
+    # ALISHA
     def create_pptx_embedding(self, file_path):
         """
         Extracts text from a PPTX file and returns it.
@@ -53,14 +63,14 @@ class Service:
         pass
 
     # 2. Save to MongoDB (Abstract Layer)
-    #DEEP
+    # DEEP
     def save_file_db(self, file, text, collection_name):
         """
         Saves the file and extracted text to the specified MongoDB collection.
         """
         # Logic to save file and text in MongoDB goes here
         pass
-    
+
     def delete_file_db(self, file, collection_name):
         """
         Saves the file and extracted text to the specified MongoDB collection.
@@ -69,21 +79,21 @@ class Service:
         pass
 
     # 3. Vector Operations
-    #SHREYAS
+    # SHREYAS
     def store_vector(self, vector, metadata):
         """
         Stores a vector in the FAISS vector store with associated metadata.
         """
         self.vector_store.add_vector(vector, metadata)
 
-    #RAHUL
+    # RAHUL
     def search_vector(self, query_vector):
         """
         Searches for similar vectors in the FAISS vector store based on the query vector.
         """
         return self.vector_store.search(query_vector)
 
-    #SHREYAS
+    # SHREYAS
     def remove_vector(self, vector_id):
         """
         Removes a vector from the FAISS vector store.
@@ -91,15 +101,15 @@ class Service:
         self.vector_store.remove(vector_id)
 
     # 4. MongoDB Operations for Conversations
-    #DEEP
+    # DEEP
     def fetch_conversation(self, user_id):
         """
         Fetches conversation history for the current user from MongoDB.
         """
         # Logic to fetch user conversation from MongoDB
         pass
-    
-    #DEEP
+
+    # DEEP
     def save_conversation(self, user_id, conversation):
         """
         Saves the current conversation for the current user in MongoDB.
@@ -108,7 +118,7 @@ class Service:
         pass
 
     # 5. Create prompt using chat history
-    #DEEP/AJINKYA
+    # DEEP/AJINKYA
     def create_prompt(self, user_id, current_question):
         """
         Creates a prompt by combining the user's chat history and the current question.
@@ -126,7 +136,7 @@ class Service:
         return "Default prompt to use if no chat history exists."
 
     # 7. Call Model API for Response
-    #AJINKYA
+    # AJINKYA
     def get_response(self, prompt):
         """
         Calls the model API to get a response based on the given prompt.
@@ -136,7 +146,7 @@ class Service:
         return response
 
     # Additional Embedding Functions
-    #SHREYAS
+    # SHREYAS
     def create_vector(self, text):
         """
         Creates vector embeddings for the given text.
