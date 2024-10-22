@@ -1,30 +1,41 @@
+import os
+import sys
+
+# Add the parent directory to the sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from data.mongodb_handler import MongoDBHandler
+
 class Service:
     
-    def __init__(self, mongodb_client, faiss_index):
+    def __init__(self, faiss_index = ""):
         """
         Initialize the Service class with MongoDB client and FAISS index for vector storage.
         """
-        self.mongodb = mongodb_client  # MongoDB instance
+        self.mongodb = MongoDBHandler()  # MongoDB instance
         self.vector_store = faiss_index  # FAISS instance to store vectors
         print('Service initialized')
 
     # 1. Embedding Creation
-    def create_embedding(self, file_path, file_type):
+    def create_embedding(self, file_content, course_id):
         """
         Generates embeddings for different file types like PDF, text, pptx, etc.
         After extracting text from the document, the text is stored in MongoDB.
         Then, embeddings are created and stored in FAISS.
         """
-        if file_type == 'pdf':
-            text = self.create_pdf_embedding(file_path)
-        elif file_type == 'text':
-            text = self.create_text_embedding(file_path)
-        elif file_type == 'pptx':
-            text = self.create_pptx_embedding(file_path)
+        file_type = self.get_file_type(file_content)
+        if file_type == 'application/pdf':
+            extracted_text = self.create_pdf_embedding(file_content)
+        elif file_type == 'text/plain':
+            extracted_text = self.create_text_embedding(file_content)
+        elif file_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+            extracted_text = self.create_pptx_embedding(file_content)
+            
         # Save extracted text to MongoDB
-        self.save_to_mongo(file_path, text, collection_name="documents")
+        self.save_file_db(file_content, extracted_text, course_id)
+        
         # After saving to DB, create embeddings in FAISS
-        self.store_vector(self.create_vector(text), {"file_path": file_path})
+        self.store_vector(self.create_vector(extracted_text), {"file_content": file_content})
 
     #KANISHK 
     def create_pdf_embedding(self, file_path):
@@ -54,12 +65,11 @@ class Service:
 
     # 2. Save to MongoDB (Abstract Layer)
     #DEEP
-    def save_file_db(self, file, text, collection_name):
+    def save_file_db(self, file_content, extracted_text, course_id):
         """
-        Saves the file and extracted text to the specified MongoDB collection.
+        Saves the file and their extracted text to MongoDB.
         """
-        # Logic to save file and text in MongoDB goes here
-        pass
+        self.mongodb.save_file(file_content, extracted_text, course_id)
     
     def delete_file_db(self, file, collection_name):
         """
@@ -143,3 +153,13 @@ class Service:
         """
         # Logic to convert the text into vector embeddings
         pass
+    
+    def initialize_collections(self):
+        """"
+        To initialize tables and load data in mongodb
+        """     
+        self.mongodb.initialize_collections()
+               
+# To load data for development purpose.
+file_service = Service()
+file_service.initialize_collections()
