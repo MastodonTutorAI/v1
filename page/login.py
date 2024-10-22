@@ -1,25 +1,26 @@
 import streamlit as st
+from service import service
 
-users_db = {
-    "admin": {"username": "admin", "password": "admin", "role": "admin"},
-    "student": {"username": "student", "password": "student", "role": "student"}
-}
+if 'service_initialized' not in st.session_state:
+    st.session_state.service = service.Service()
+    st.session_state.service_initialized = True
+
+service = st.session_state.service
 
 def authenticate_user(username, password):
     """
     Function to authenticate the user by checking the username and password.
-    In the future, this can be replaced by a database query.
     """
-    if username in users_db:
-        user = users_db[username]
-        if user['password'] == password:
-            return True, user['role']
+    user = service.login(username, password)
+    if user:
+        print("Logged in.")
+        return True, user['user_role']
     return False, None
 
 def login():
     # st.image("assets\Picture1.jpg", caption="")
 
-    with st.container():
+    with st.container(border=True):
         username = st.text_input("Username", "")
         password = st.text_input("Password", "", type="password")
         if st.button(label='Login'):

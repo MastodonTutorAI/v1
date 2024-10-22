@@ -56,3 +56,6 @@ class MongoDBHandler:
         self.db.course_material_metadata.insert_one(course_material_metadata)
         print("File uploaded successfully.")
 
+    def login(self, username, hashed_password):
+        user = self.db.users.find_one({"username": username, "hashed_password": hashed_password})
+        return user

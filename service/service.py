@@ -78,6 +78,12 @@ class Service:
         # Logic to save file and text in MongoDB goes here
         pass
 
+    def login(self, username, hashed_password):
+        """
+        Validates the user login credentials from MongoDB.
+        """
+        return self.mongodb.login(username, hashed_password)
+
     # 3. Vector Operations
     #SHREYAS
     def store_vector(self, vector, metadata):
@@ -161,5 +167,5 @@ class Service:
         self.mongodb.initialize_collections()
                
 # To load data for development purpose.
-file_service = Service()
-file_service.initialize_collections()
+# file_service = Service()
+# file_service.initialize_collections()
