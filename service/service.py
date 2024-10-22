@@ -1,14 +1,14 @@
+from utils.pdf_utility import extract_text_and_images  # Kanishk's import
+from data.mongodb_handler import MongoDBHandler
 import os
 import sys
 
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from data.mongodb_handler import MongoDBHandler
-from utils.pdf_utility import extract_text_and_images  # Kanishk's import
 
 class Service:
-    
+
     def __init__(self, faiss_index=""):
         """
         Initialize the Service class with MongoDB client and FAISS index for vector storage.
@@ -31,21 +31,22 @@ class Service:
             extracted_text = self.create_text_embedding(file_content)
         elif file_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
             extracted_text = self.create_pptx_embedding(file_content)
-            
+
         # Save extracted text to MongoDB
         self.save_file_db(file_content, extracted_text, course_id)
-        
+
         # After saving to DB, create embeddings in FAISS
-        self.store_vector(self.create_vector(extracted_text), {"file_content": file_content})
+        self.store_vector(self.create_vector(extracted_text),
+                          {"file_content": file_content})
 
     # KANISHK
-    def create_pdf_embedding(self, file_path):
+    def create_pdf_embedding(self, file_content):
         """
         Extracts text from a PDF file and returns it.
         """
         try:
             # Logic to extract text from PDF goes here
-            text_content = extract_text_and_images(file_path)
+            text_content = extract_text_and_images(file_content)
         except Exception as e:
             print(f"Error extracting text from PDF: {e}")
             text_content = ["[Error extracting text from PDF]"]
@@ -156,6 +157,7 @@ class Service:
         Initializes tables and loads data into MongoDB.
         """
         self.mongodb.initialize_collections()
+
 
 # To load data for development purposes.
 file_service = Service()
