@@ -5,7 +5,7 @@ A web-based assistant for students and professors, providing personalized help b
 ## Project Structure
 
 ```
-student_assistant_project/
+Mastodon-TutorAI/
 │
 ├── .env                        # Environment variables for sensitive data
 ├── .gitignore                  # Git ignore file
@@ -65,16 +65,53 @@ cd mastodon-tutorai
 Create a `.env` file in the root directory. Here is an example of what should go into the `.env` file:
 
 ```sh
-MONGODB_URI="your_mongodb_uri_here"
+MONGODB_URI="mongodb_uri_here"
+MONGODB_DB_NAME="db_name"
 FAISS_INDEX_PATH="./vector_store/faiss_index"
 MODEL_PATH="./models/fine_tuned_model"
+HF_TOKEN="hf_token_here"
 ```
 
 - **`MONGODB_URI`**: Your MongoDB connection string.
+- **`MONGODB_DB_NAME`**: The name of your MongoDB database.
 - **`FAISS_INDEX_PATH`**: Path to store FAISS indices.
 - **`MODEL_PATH`**: Path where the fine-tuned Hugging Face model will be saved.
 
-### Step 3: Install Dependencies
+### Step 3: Set Up a Virtual Environment
+
+It is recommended to use a virtual environment to manage project's dependencies. Follow these steps to set up and activate a virtual environment:
+
+#### On Windows
+
+1. Create the Virtual Environment (Run this command only once):
+    ```sh
+    python -m venv venv
+    ```
+
+2. Activate the Virtual Environment
+    - For Command Prompt:
+      ```sh
+      venv\Scripts\activate
+      ```
+
+    - For PowerShell:
+      ```sh
+      venv\Scripts\Activate.ps1
+      ```
+
+#### On macOS/Linux
+
+1. Create the Virtual Environment (Run this command only once):
+    ```sh
+    python3 -m venv venv
+    ```
+
+2. Activate the Virtual Environment:
+    ```sh    
+    source venv/bin/activate
+    ```
+
+### Step 4: Install Dependencies
 
 Use the following command to install all necessary Python packages:
 
@@ -84,7 +121,29 @@ pip install -r requirements.txt
 
 This will install packages such as `streamlit`, `pymongo`, `faiss-cpu` (or `faiss-gpu` if you're using GPU), and `transformers`.
 
-### Step 4: Run the Streamlit Application
+### Step 5: Set Up MongoDB
+1. Install MongoDB Community Edition:
+    - Follow the official MongoDB installation guide for your operating system: [MongoDB Installation Guide](https://docs.mongodb.com/manual/installation/)
+
+2. Run MongoDB
+    - Open Command Prompt and navigate to the MongoDB binaries directories:
+      
+      ```sh
+      cd C:\Program Files\MongoDB\Server\7.0\bin
+      ```
+    - Start the MongoDB server using the command:
+      ```sh
+      mongod
+      ```
+
+3. Initialize MongoDB Collections:
+    - Head over to /service folder and run:
+      ```sh
+      python service.py
+      ```
+    - This will create database and collections in local MongoDB
+
+### Step 6: Run the Streamlit Application
 
 Launch the Streamlit UI using:
 
