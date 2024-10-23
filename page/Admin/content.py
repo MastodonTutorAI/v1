@@ -1,85 +1,75 @@
 import streamlit as st
-import base64
-from io import BytesIO
-import os
-from streamlit_pdf_viewer import pdf_viewer
+from page.html_template import template
+import time
 
-
-# # Function to create a link to download/open the PDF
-# def create_pdf_preview_link(file_path):
-#     # Create an anchor tag for opening the file in a new tab
-#     href = f'<a href="file://{file_path}" target="_blank">Preview PDF in new tab</a>'
-#     return href
-
-# @st.fragment
-# def show_pdf_preview():
-#     if uploaded_file.type == "application/pdf":
-#         pdf_viewer(r'assets\Network_Basics.pdf')
-#     else:
-#         st.write("Preview is not supported for this file type.")
+# Define columns for the layout
+colms = st.columns([2, 1])
+fields = ["File Name", "Available To Assistant", "Preview", "Action"]
 
 # File uploader
-uploaded_file = st.file_uploader(
-    "Choose a file", accept_multiple_files=False, type=['pdf', 'txt', 'pptx']
+uploaded_file = colms[0].file_uploader(
+    "Choose a file", accept_multiple_files=False, type=['pdf', 'txt', 'pptx'], key=st.session_state['uploader_key']
 )
 
-fields = ["File Name", "Available To Assistant", "Preview"]
+# Render the upload button
+st.markdown(
+    template.upload_button,
+    unsafe_allow_html=True,
+)
+colms[1].markdown('<span id="upload_button"></span>', unsafe_allow_html=True)
+# Define upload button functionality
+with st.container():
+    if colms[1].button("Upload", key="upload_button", type='primary'):
+        if uploaded_file:
+            progress_bar = st.progress(0, text='Processing...')
+            for percent_complete in range(100):
+                time.sleep(0.03) 
+                progress_bar.progress(percent_complete + 1)
 
-st.markdown("""
-    <style>
-    .stContainer {
-        border: 1px solid black;
-        padding: 10px;
-        border-radius: 5px;
-    }
-    .stColumns > div {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-right: 1px solid black;
-    }
-    .stColumns > div:last-child {
-        border-right: none;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+            st.session_state['uploaded_files'].append({
+                "file_name": uploaded_file.name,
+                "available": False 
+            })
+            st.session_state['uploader_key'] += 1
+            st.success(f"'{uploaded_file.name}' uploaded successfully!")
 
 # Create a container with a border
 container = st.container(border=True)
 
 with container:
     # Create table header
-    cols = st.columns([2,1,1])
+    cols = st.columns([2, 0.5, 0.5, 0.5])
     for col, field in zip(cols, fields):
-        col.write(f"**{field}**")
+        html_content = f"""
+            <div style='display: flex; align-items: center; justify-content: space-between; width: 100%;'>
+                <span style='font-weight: bold; font-size: 18px;'>{field}</span>
+            </div>
+            """
+        col.markdown(html_content, unsafe_allow_html=True)
 
-    st.divider()  # Divider line between header and rows
+    st.divider()
 
-    # Check if a file is uploaded
-    if uploaded_file:
-        file_name = uploaded_file.name
+    # Show uploaded files in the table if any exist
+    if st.session_state['uploaded_files']:
+        for file_data in st.session_state['uploaded_files']:
+            file_name = file_data['file_name']
 
-        # Create table rows for each file
-        col1, col2, col3 = st.columns([2,1,1])
+            col1, col2, col3, col4 = st.columns([2, 0.5, 0.5, 0.5])
 
-        # First column: File Name
-        col1.write(file_name)
+            col1.write(file_name)
 
-        # Second column: Preview Button
-        preview_placeholder = col3.empty()
-        show_preview = preview_placeholder.button("Preview", key=file_name, type='primary')
+            preview_placeholder = col3.empty()
+            show_preview = preview_placeholder.button("Preview", key="Preview"+file_name)
 
-        # Third column: Checkbox
-        with col2:
-            assistant_checkbox = st.toggle("Available", key="assistant_checkbox_" + file_name)
+            col4.button("Delete", key="Delete"+file_name, on_click=lambda: st.session_state['uploaded_files'].remove(file_data))
 
-        # If checkbox is selected
-        if assistant_checkbox:
-            st.write(f"The file '{file_name}' is available for the assistant.")
+            with col2:
+                assistant_checkbox = st.checkbox("Available", key="assistant_checkbox_" + file_name, value=file_data['available'])
 
-        # If preview button is clicked
-        if show_preview:
-            st.write(f"Previewing file: {file_name}")
+            file_data['available'] = assistant_checkbox
+
+            if show_preview:
+                st.write(f"Previewing file: {file_name}")
 
     else:
-        st.write('No file uploaded!')
+        st.write("No files uploaded yet.")

@@ -4,9 +4,8 @@ from utils import init as init_page
 st.set_page_config(
     page_title="Mastodon TutorAI",
     page_icon=":material/school:",
+    layout="wide"
 )
-
-st.title("Mastodon TutorAI")
 
 admin_dashboard = st.Page("page/Admin/dashboard.py", title="Dashboard", icon=":material/dashboard:", default=True)
 admin_reports = st.Page("page/Admin/reports.py", title="Report", icon=":material/lab_profile:")

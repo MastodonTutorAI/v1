@@ -8,3 +8,9 @@ def init_page():
 
     if "isAdmin" not in st.session_state:
         st.session_state.isAdmin = False
+
+    if 'uploaded_files' not in st.session_state:
+        st.session_state['uploaded_files'] = []
+
+    if 'uploader_key' not in st.session_state:
+        st.session_state['uploader_key'] = 0

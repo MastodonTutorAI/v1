@@ -18,8 +18,12 @@ def authenticate_user(username, password):
 
 def login():
     # st.image("assets\Picture1.jpg", caption="")
-
-    with st.container():
+    colms1 = st.columns([1, 1, 1])
+    colms2 = st.columns([1, 1, 1])
+    
+    colms1[1].title("Mastodon TutorAI")
+    container = colms2[1].container(border=True)
+    with container:
         username = st.text_input("Username", "")
         password = st.text_input("Password", "", type="password")
         if st.button(label='Login'):
