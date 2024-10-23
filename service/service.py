@@ -1,7 +1,9 @@
-from utils.pdf_utility import extract_text_and_images  # Kanishk's import
+#Renamed file to file_processor 
+from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
 import os
 import sys
+import mimetypes
 
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,6 +19,15 @@ class Service:
         self.vector_store = faiss_index  # FAISS instance to store vectors
         print('Service initialized')
 
+    #ALISHA
+    #Checking for file type
+    def get_file_type(self, file_content):
+        file_name = getattr(file_content, 'name', None)
+        mime_type, _ = mimetypes.guess_type(file_name)
+        if not mime_type:
+            raise ValueError(f"Cannot determine file type for {file_name}")
+        return mime_type
+
     # 1. Embedding Creation
     def create_embedding(self, file_content, course_id):
         """
@@ -25,46 +36,16 @@ class Service:
         Then, embeddings are created and stored in FAISS.
         """
         file_type = self.get_file_type(file_content)
-        if file_type == 'application/pdf':
-            extracted_text = self.create_pdf_embedding(file_content)
-        elif file_type == 'text/plain':
-            extracted_text = self.create_text_embedding(file_content)
-        elif file_type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
-            extracted_text = self.create_pptx_embedding(file_content)
-
+        extracted_text = extract_text_and_images(file_type,file_content)
+        if not extracted_text:
+            raise ValueError("Failed to extract text from the given file.")
+         
         # Save extracted text to MongoDB
         self.save_file_db(file_content, extracted_text, course_id)
 
         # After saving to DB, create embeddings in FAISS
         self.store_vector(self.create_vector(extracted_text),
                           {"file_content": file_content})
-
-    # KANISHK
-    def create_pdf_embedding(self, file_content):
-        """
-        Extracts text from a PDF file and returns it.
-        """
-        try:
-            # Logic to extract text from PDF goes here
-            text_content = extract_text_and_images(file_content)
-        except Exception as e:
-            print(f"Error extracting text from PDF: {e}")
-            text_content = ["[Error extracting text from PDF]"]
-
-        return text_content
-
-    # ALISHA
-    def create_text_embedding(self, file_path):
-        """
-        Extracts text from a text file and returns it.
-        """
-        pass  # Logic to extract text from a text file goes here
-
-    # ALISHA
-    def create_pptx_embedding(self, file_path):
-        """
-        Extracts text from a PPTX file and returns it.
-        """
         pass  # Logic to extract text from a PPTX file goes here
 
     # 2. Save to MongoDB (Abstract Layer)
