@@ -35,19 +35,22 @@ class Service:
         After extracting text from the document, the text is stored in MongoDB.
         Then, embeddings are created and stored in FAISS.
         """
-        file_type = self.get_file_type(file_content)
-        extracted_text = extract_text_and_images(file_type,file_content)
-        if not extracted_text:
-            raise ValueError("Failed to extract text from the given file.")
-         
-        # Save extracted text to MongoDB
-        self.save_file_db(file_content, extracted_text, course_id)
+        try:
+            file_type = self.get_file_type(file_content)
+            extracted_text = extract_text_and_images(file_type,file_content)
+            if not extracted_text:
+                raise ValueError("Failed to extract text from the given file.")
+            
+            # Save extracted text to MongoDB
+            self.save_file_db(file_content, extracted_text, course_id)
 
-        # After saving to DB, create embeddings in FAISS
-        self.store_vector(self.create_vector(extracted_text),
-                          {"file_content": file_content})
-        pass  # Logic to extract text from a PPTX file goes here
-
+            # After saving to DB, create embeddings in FAISS
+            self.store_vector(self.create_vector(extracted_text),
+                            {"file_content": file_content})
+        except Exception as e:
+            print(f"Error processing file: {e}")
+            raise RuntimeError(f"Failed to process file: {e}")
+  
     # 2. Save to MongoDB (Abstract Layer)
     # DEEP
     def save_file_db(self, file_content, extracted_text, course_id):

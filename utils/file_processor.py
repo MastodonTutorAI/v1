@@ -22,7 +22,7 @@ def extract_text_and_images(file_type,file):
             return extract_text_from_ppt(file)
     except Exception as e:
         print(f"Error processing file: {e}")
-        return None
+        raise RuntimeError(f"Failed to process file: {e}")
 
 #KANISHK'S CODE    
 def extract_text_from_pdf(file):
@@ -72,8 +72,11 @@ def extract_text_from_ppt(file):
     """Extracts text from an uploaded PPTX file."""
     text_content = []
     #Loading the presentation file
-    prs = Presentation(file)
-
+    try:
+        prs = Presentation(file)
+    except Exception as e:
+        raise RuntimeError(f"Error processing PPTX file: {e}")
+    
     #Looping through all slides to extract text from each slide
     for slide_num,slide in enumerate(prs.slides):
         
@@ -101,6 +104,7 @@ def extract_text_from_ppt(file):
                     text_content.append(text_extracted)
                 except Exception as e:
                     print(f"Error occured while extracting text from image on slide {slide_num+1}: {e}")
+                    raise RuntimeError(f"Error occured while extracting text from image on slide {slide_num+1}: {e}")
 
     # #Removing duplicates
     # text_content = list(dict.fromkeys(text_content)) 
