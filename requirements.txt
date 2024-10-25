@@ -1,0 +1,12 @@
+streamlit
+python-dotenv
+PyMuPDF             # For extracting text and images from PDFs
+pdf2image        # To convert PDF pages to images
+easyocr     # For OCR on extracted images
+Pillow               # For handling images (PIL library)
+numpy
+python-pptx==0.6.21
+langchain_openai
+langchain_chroma
+langchain
+python-dotenv
