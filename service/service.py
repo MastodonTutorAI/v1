@@ -4,7 +4,7 @@ import mimetypes
 
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.pdf_utility import extract_text_and_images # Kanishk's import
+from utils.file_processor import extract_text_and_images # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
 from data.EmbeddingHandler import ChromaDBManager
 
@@ -50,7 +50,7 @@ class Service:
         except Exception as e:
             print(f"Error processing file: {e}")
             raise RuntimeError(f"Failed to process file: {e}")
-
+        
     # 2. Save to MongoDB (Abstract Layer)
     # DEEP
     def save_file_db(self, file_content, extracted_text, course_id):
