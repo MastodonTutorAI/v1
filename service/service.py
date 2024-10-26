@@ -3,6 +3,7 @@ from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
 import os
 import sys
+import mimetypes
 
 import mimetypes
 
