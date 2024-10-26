@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
 
-def initialize_chatbot(model_id="meta-llama/Llama-3.2-1B-Instruct"):
+def initialize_chatbot(model_id= os.getenv("MODEL_ID")):
     """Initialize the chatbot pipeline."""
     pipe = pipeline(
         "text-generation",
@@ -31,5 +31,5 @@ def update_chat_history(messages, role, content):
 def display_conversation(messages):
     """Print the chat history in a user-friendly format."""
     for message in messages:
-        role = "🧑‍💻 User" if message["role"] == "user" else "🤖 Pirate Bot"
+        role = "🧑‍💻 User" if message["role"] == "user" else "🤖 Personal Bot"
         print(f"{role}: {message['content']}\n")
