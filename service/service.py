@@ -1,25 +1,25 @@
-#Renamed file to file_processor 
-from utils.file_processor import extract_text_and_images  # Kanishk's import
-from data.mongodb_handler import MongoDBHandler
 import os
 import sys
 import mimetypes
 
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+from utils.file_processor import extract_text_and_images # Kanishk's import
+from data.mongodb_handler import MongoDBHandler
+from data.EmbeddingHandler import ChromaDBManager
 
 class Service:
 
-    def __init__(self, faiss_index=""):
+    def __init__(self, course_id):
         """
         Initialize the Service class with MongoDB client and FAISS index for vector storage.
         """
-        self.mongodb = MongoDBHandler()  # MongoDB instance
-        self.vector_store = faiss_index  # FAISS instance to store vectors
+        self.mongodb = MongoDBHandler() 
+        self.chroma_db_manager = ChromaDBManager()  
+        self.course_id = course_id  
         print('Service initialized')
 
-    #ALISHA
+     #ALISHA
     #Checking for file type
     def get_file_type(self, file_content):
         file_name = getattr(file_content, 'name', None)
@@ -50,7 +50,7 @@ class Service:
         except Exception as e:
             print(f"Error processing file: {e}")
             raise RuntimeError(f"Failed to process file: {e}")
-  
+        
     # 2. Save to MongoDB (Abstract Layer)
     # DEEP
     def save_file_db(self, file_content, extracted_text, course_id):
@@ -67,11 +67,11 @@ class Service:
 
     # 3. Vector Operations
     # SHREYAS
-    def store_vector(self, vector, metadata):
+    def store_vector(self, course_id, document_id, extracted_text):
         """
         Stores a vector in the FAISS vector store with associated metadata.
         """
-        self.vector_store.add_vector(vector, metadata)
+        self.chroma_db_manager.store_vector(course_id, document_id, extracted_text)
 
     # RAHUL
     def search_vector(self, query_vector):
@@ -128,21 +128,8 @@ class Service:
         response = self.model.query(prompt)
         return response
 
-    # Additional Embedding Functions
-    # SHREYAS
-    def create_vector(self, text):
-        """
-        Creates vector embeddings for the given text.
-        """
-        pass  # Logic to convert the text into vector embeddings
-
     def initialize_collections(self):
         """
         Initializes tables and loads data into MongoDB.
         """
         self.mongodb.initialize_collections()
-
-
-# To load data for development purposes.
-file_service = Service()
-file_service.initialize_collections()
