@@ -8,3 +8,7 @@ numpy
 python-pptx==0.6.21
 transformers  #for HuggingFace Model
 torch           #Pytorch
+langchain_openai
+langchain_chroma
+langchain
+
