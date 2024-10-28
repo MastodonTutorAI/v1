@@ -23,7 +23,7 @@ class Service:
         self.course_id = course_id  
         print('Service initialized')
 
-     #ALISHA
+    #ALISHA
     #Checking for file type
     def get_file_type(self, file_content):
         file_name = getattr(file_content, 'name', None)
@@ -62,12 +62,36 @@ class Service:
         Saves the file and their extracted text to MongoDB.
         """
         self.mongodb.save_file(file_content, extracted_text, course_id)
+        
+    def get_file_db(self, course_id):
+        """
+        Retrieves the file and extracted text from the specified MongoDB collection.
+        """
+        return self.mongodb.get_files(course_id)
+    
+    def create_course(self, course_id, course_name, professor_name, description, professor_id):
+        """
+        Creates a new course in MongoDB.
+        """
+        return self.mongodb.create_course(course_id, course_name, professor_name, description, professor_id)
+    
+    def get_courses(self, professor_id):
+        """
+        Retrieve all courses for a professor from MongoDB.
+        """
+        return self.mongodb.get_courses(professor_id)
 
     def delete_file_db(self, file, collection_name):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
         """
         pass  # Logic to delete file and text in MongoDB goes here
+    
+    def login(self, username, password):
+        """
+        Validates the user login credentials from MongoDB.
+        """
+        return self.mongodb.login(username, password)
 
     # 3. Vector Operations
     # SHREYAS
@@ -93,18 +117,23 @@ class Service:
 
     # 4. MongoDB Operations for Conversations
     # DEEP
-    def fetch_conversation(self, user_id):
+    def save_conversation(self, conversation_data):
         """
-        Fetches conversation history for the current user from MongoDB.
+        Saves a conversation to MongoDB.
         """
-        pass  # Logic to fetch user conversation from MongoDB
+        return self.mongodb.save_conversation(conversation_data)
 
-    # DEEP
-    def save_conversation(self, user_id, conversation):
+    def remove_conversation(self, conversation_id):
         """
-        Saves the current conversation for the current user in MongoDB.
+        Removes a conversation from MongoDB.
         """
-        pass  # Logic to save the current conversation in MongoDB
+        return self.mongodb.remove_conversation(conversation_id)
+
+    def get_conversation(self, conversation_id):
+        """
+        Retrieves a conversation from MongoDB.
+        """
+        return self.mongodb.get_conversation(conversation_id)
 
     # 5. Create prompt using chat history
     # DEEP/AJINKYA
@@ -181,11 +210,6 @@ class Service:
         except Exception as e:
             print(f"Error displaying conversation: {e}")
             return "[Error displaying conversation]"
-
-    
-
-
-        
 
 
 # To load data for development purposes.

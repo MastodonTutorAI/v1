@@ -11,4 +11,5 @@ torch           #Pytorch
 langchain_openai
 langchain_chroma
 langchain
+bcrypt
 
