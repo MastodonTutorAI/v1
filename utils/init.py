@@ -6,6 +6,9 @@ def init_page():
         st.session_state.service = service.Service()
         st.session_state.service_initialized = True
 
+    if "selected_course" not in st.session_state:
+        st.session_state.selected_course = None
+
     if "selected_course_id" not in st.session_state:
         st.session_state.selected_course_id = None
 
@@ -39,3 +42,6 @@ def init_page():
 
     if "user" not in st.session_state:
         st.session_state.user = None
+    
+    if "courses" not in st.session_state:
+        st.session_state.courses = []

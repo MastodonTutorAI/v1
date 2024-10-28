@@ -5,14 +5,8 @@ from page.Admin.assistant import show_assistant
 admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant", icon=":material/chat:")
 
 service = st.session_state.service
-
-# Example course details (abstract level) for each card
-courses = []
-
-st.write(st.session_state.user)
-
-st.subheader("Available Course Assistants")
-st.divider()
+courses = st.session_state.courses
+# st.write(st.session_state.user)
 
 @st.dialog("Create New Assistant")
 def create_new_assistant():
@@ -28,52 +22,73 @@ def create_new_assistant():
 def get_courses():
     with st.spinner("Fetching courses..."):
         global courses
-        courses = service.get_courses(st.session_state.user['_id'])
+        courses_cursor = service.get_courses(st.session_state.user['_id'])
+        courses = {}
+        for course in courses_cursor:
+            courses[course['course_id']] = course  # Use course_id as key
+        st.session_state.courses = courses
 
-if st.button("Create New Assistant", key="create_assistant"):
-    create_new_assistant()
+@st.fragment
+def course_row(course):
+    with st.container(border=True, height=400):
+        st.subheader(course['course_name'])
+        st.write(f"**Professor:** {course['professor_name']}")
+        st.write(f"**Description:** {course['description']}")
+        cols = st.columns([1, 6])
+        cols[0].success("**Status:** Active", icon="✅")
 
-get_courses()
+        st.divider()
+        cols = st.columns([1, 1, 11])
 
-if st.session_state['content_opened'] == False and st.session_state['assistant_opened'] == False:
+        # Button to view content details
+        if cols[0].button("View Details", key=f"content_details_{course['course_id']}"):
+            print("View content details")
+            st.session_state['content_opened'] = True
+            st.session_state['selected_course'] = course
+            st.rerun()
+
+        # Button to view assistant
+        if cols[1].button("View Assistant", key=f"assistant_details_{course['course_id']}"):
+            st.session_state['assistant_opened'] = True
+            st.session_state['selected_course'] = course
+            st.rerun()
+
+def show_courses():
     with st.container(border=False, height=1000):
-        for course in courses:
-            with st.container(border=True, height=400):
-                st.subheader(course['course_name'])
-                st.write(f"**Professor:** {course['professor_name']}")
-                st.write(f"**Description:** {course['description']}")
-                cols = st.columns([1, 6])
-                cols[0].success("**Status:** Active", icon="✅")
+        for course_id, course in st.session_state.courses.items():  # Iterate over key-value pairs
+            course_row(course)
 
-                st.divider()
-                cols = st.columns([1, 1, 11])
+def dashboard_main():
+    st.title("Available Courses")
+    st.divider() 
+    if st.button("Create New Course", key="create_course"):
+        create_new_assistant()
 
-                # Button to view content details
-                if cols[0].button("View Details", key=f"content_details_{course['course_id']}"):
-                    st.session_state['content_opened'] = True
-                    st.session_state['selected_course'] = course
-                    st.rerun()
+    show_courses()
 
-                # Button to view assistant
-                if cols[1].button("View Assistant", key=f"assistant_details_{course['course_id']}"):
-                    st.session_state['assistant_opened'] = True
-                    st.session_state['selected_course'] = course
-                    st.rerun()
-else:
-    if st.button("Go back"):
+def dashboard():
+    if st.session_state.courses == []:
+        get_courses()
+
+    # print("Courses: " + str(st.session_state.courses))
+    # print("Courses: " + str(courses))
+    if st.session_state['content_opened'] == False and st.session_state['assistant_opened'] == False:
+        dashboard_main()
+    else:
+        if st.button("Go back"):
+            if st.session_state['content_opened'] == True or st.session_state['assistant_opened'] == True:
+                st.session_state['content_opened'] = False
+                st.session_state['assistant_opened'] = False
+                st.session_state['selected_course'] = None
+                st.session_state['uploaded_files'] = []
+                st.rerun()
+
         if st.session_state['content_opened'] == True:
-            st.session_state['content_opened'] = False
-            st.rerun()
-        if st.session_state['assistant_opened'] == True:
-            st.session_state['assistant_opened'] = False
-            st.rerun()
-    
-    if st.session_state['content_opened'] == True:
-        st.divider()
-        st.subheader("**Manage Documents for Assistant**")
-        show_content()
+            show_content()
 
-    if st.session_state['assistant_opened'] == True:
-        st.divider()
-        st.subheader("**Assistant For Deep Learning Course**")
-        show_assistant()
+        if st.session_state['assistant_opened'] == True:
+            st.divider()
+            st.subheader("**Assistant For Deep Learning Course**")
+            show_assistant()
+
+dashboard()

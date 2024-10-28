@@ -119,20 +119,25 @@ class Service:
         """
         self.vector_store.remove(vector_id)
 
-    # 4. MongoDB Operations for Conversations
+        # 4. MongoDB Operations for Conversations
     # DEEP
-    def fetch_conversation(self, user_id):
+    def save_conversation(self, conversation_data):
         """
-        Fetches conversation history for the current user from MongoDB.
+        Saves a conversation to MongoDB.
         """
-        pass  # Logic to fetch user conversation from MongoDB
+        return self.mongodb.save_conversation(conversation_data)
 
-    # DEEP
-    def save_conversation(self, user_id, conversation):
+    def remove_conversation(self, conversation_id):
         """
-        Saves the current conversation for the current user in MongoDB.
+        Removes a conversation from MongoDB.
         """
-        pass  # Logic to save the current conversation in MongoDB
+        return self.mongodb.remove_conversation(conversation_id)
+
+    def get_conversation(self, conversation_id):
+        """
+        Retrieves a conversation from MongoDB.
+        """
+        return self.mongodb.get_conversation(conversation_id)
 
     # 5. Create prompt using chat history
     # DEEP/AJINKYA

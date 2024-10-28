@@ -9,13 +9,14 @@ import fitz
 
 service = st.session_state.service
 fields = ["File Name", "Available To Assistant", "Preview", "Action"]
+selected_course_id = None
 
 @st.fragment
 def retrieve_files():
     # Load files from MongoDB once
     st.session_state['uploaded_files'] = []
     with st.spinner("Loading files..."):
-        course_files = service.get_file_db(st.session_state.selected_course_id)  # Assuming `get_files_for_course` fetches all files for a course
+        course_files = service.get_file_db(selected_course_id)
         for file in course_files:
             st.session_state['uploaded_files'].append({
                 "file_name": file['file_name'],
@@ -23,8 +24,17 @@ def retrieve_files():
                 "file_id": file['file_id']  # Store file_id for referencing
             })
 
+def content_page_header():
+    st.title(st.session_state.selected_course['course_name'])
+    st.divider()
+    st.subheader("Manage Course Material")
+    add_vertical_space(1)
+
 @st.fragment
 def show_content():
+    global selected_course_id
+    selected_course_id = st.session_state.selected_course['course_id']
+    content_page_header()
     retrieve_files()
     add_vertical_space(1)
     # Define columns for the layout
@@ -42,27 +52,23 @@ def show_content():
     )
     colms[1].markdown('<span id="upload_button"></span>', unsafe_allow_html=True)
     
-    # Define upload button functionality
+    # Upload button
     with st.container():
         if colms[1].button("Upload", key="upload_button", type='primary'):
             if uploaded_file:
-                # Get file content as bytes
-                file_content = uploaded_file.getvalue()
-                # st.write(file_content)
                 with st.spinner('Processing...'):
-                    if file_content:
-                        # Pass file_content directly to the service
-                        service.create_embedding(uploaded_file, st.session_state.selected_course_id)
-                        
-                        # Append file details to session state after processing is complete
-                        st.session_state['uploader_key'] += 1
-                        st.success(f"'{uploaded_file.name}' uploaded successfully!")
-                        retrieve_files()
+                    # Pass file_content directly to the service
+                    service.create_embedding(uploaded_file, selected_course_id)
+                    
+                    # Append file details to session state after processing is complete
+                    st.session_state['uploader_key'] += 1
+                    st.success(f"'{uploaded_file.name}' uploaded successfully!")
+                    retrieve_files()
             else:
                 st.error("Please upload a valid file.")
     show_table()
     
-
+@st.fragment
 def show_table():
     container = st.container(border=True)
     with container:
