@@ -1,3 +1,4 @@
 .env
+.idea/
 /data/chroma_db
 .cpython-311.pyc

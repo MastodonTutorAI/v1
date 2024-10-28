@@ -10,3 +10,5 @@ def load_model():
     # This function returns model which will be used for further finegrain and finetunning for RAG
     return(tokenizer,model)
 
+
+
