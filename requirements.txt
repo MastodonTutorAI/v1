@@ -12,4 +12,4 @@ langchain_openai
 langchain_chroma
 langchain
 bcrypt
-
+huggingface-hub

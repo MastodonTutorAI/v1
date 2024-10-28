@@ -109,3 +109,5 @@ def extract_text_from_ppt(file):
     # #Removing duplicates
     # text_content = list(dict.fromkeys(text_content)) 
     return text_content
+
+
