@@ -2,6 +2,10 @@ import os
 import sys
 import mimetypes
 
+import mimetypes
+
+from utils.model_util import initialize_chatbot,generate_response,update_chat_history,display_conversation
+
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.file_processor import extract_text_and_images # Kanishk's import
@@ -133,3 +137,58 @@ class Service:
         Initializes tables and loads data into MongoDB.
         """
         self.mongodb.initialize_collections()
+
+    def call_pipe_model(self):
+        """Initializes the chatbot pipeline model."""
+        try:
+            self.pipe = initialize_chatbot()
+            print("Model pipeline initialized successfully.")
+        except Exception as e:
+            print(f"Error loading model: {e}")
+
+    def get_response_model(self, messages, max_new_tokens=256):
+        """Generates a chatbot response using the pipeline."""
+        if not self.pipe:
+            print("Model not initialized.")
+            return "[Error: Model not initialized]"
+
+        try:
+            return generate_response(self.pipe, messages, max_new_tokens)
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            return "[Error generating response]"
+
+    def update_model_chat_history(self, messages, role, content):
+        """Updates the chat history with the latest user and model messages."""
+        if not self.pipe:
+            print("Model not initialized.")
+            return "[Error: Model not initialized]"
+
+        try:
+            return update_chat_history(self.pipe, messages, role, content)
+        except Exception as e:
+            print(f"Error updating history: {e}")
+            return "[Error updating history]"
+
+    def display_chat(self, messages):
+        """Displays the chat conversation."""
+        if not messages:
+            print("Chat not available.")
+            return "[Error: No chat available]"
+
+        try:
+            return display_conversation(messages)
+        except Exception as e:
+            print(f"Error displaying conversation: {e}")
+            return "[Error displaying conversation]"
+
+    
+
+
+        
+
+
+# To load data for development purposes.
+file_service = Service()
+file_service.initialize_collections()
+
