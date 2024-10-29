@@ -3,8 +3,9 @@ from service import service
 
 def init_page():
     if 'service_initialized' not in st.session_state:
-        st.session_state.service = service.Service()
-        st.session_state.service_initialized = True
+        with st.spinner("Initializing..."):
+            st.session_state.service = service.Service()
+            st.session_state.service_initialized = True
 
     if "selected_course" not in st.session_state:
         st.session_state.selected_course = None
@@ -45,3 +46,6 @@ def init_page():
     
     if "courses" not in st.session_state:
         st.session_state.courses = []
+
+    if "is_system_prompt" not in st.session_state:
+        st.session_state.is_system_prompt = False

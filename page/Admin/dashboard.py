@@ -6,16 +6,19 @@ admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant", icon=":m
 
 service = st.session_state.service
 courses = st.session_state.courses
-# st.write(st.session_state.user)
 
 @st.dialog("Create New Assistant")
 def create_new_assistant():
-    course_name = st.text_input("Course Name", "")
+    course_name = st.text_input("Course Name", "", placeholder="e.g. Deep Learning")
+    course_id = st.text_input("Course Id", placeholder="e.g. CS5900")
     professor_name = st.text_input("Professor Name", "")
     description = st.text_area("Description","")
     if st.button("Submit"):
+        if course_name == "" or course_id == "" or professor_name == "" or description == "":
+            st.error("Please fill all the fields!")
+            return
         with st.spinner("Creating new assistant..."):
-            course_id = service.create_course(course_name, professor_name, description, st.session_state.user['_id'])
+            course_id = service.create_course(course_id, course_name, professor_name, description, st.session_state.user['_id'])
             st.success("Assistant created successfully!")
             get_courses()
 
@@ -25,7 +28,7 @@ def get_courses():
         courses_cursor = service.get_courses(st.session_state.user['_id'])
         courses = {}
         for course in courses_cursor:
-            courses[course['course_id']] = course  # Use course_id as key
+            courses[course['course_id']] = course 
         st.session_state.courses = courses
 
 @st.fragment
@@ -45,16 +48,18 @@ def course_row(course):
             print("View content details")
             st.session_state['content_opened'] = True
             st.session_state['selected_course'] = course
+            service.set_course_id(course['course_id'])
             st.rerun()
 
         # Button to view assistant
         if cols[1].button("View Assistant", key=f"assistant_details_{course['course_id']}"):
             st.session_state['assistant_opened'] = True
             st.session_state['selected_course'] = course
+            service.set_course_id(course['course_id'])
             st.rerun()
 
 def show_courses():
-    with st.container(border=False, height=1000):
+    with st.container(border=False):
         for course_id, course in st.session_state.courses.items():  # Iterate over key-value pairs
             course_row(course)
 
@@ -70,8 +75,6 @@ def dashboard():
     if st.session_state.courses == []:
         get_courses()
 
-    # print("Courses: " + str(st.session_state.courses))
-    # print("Courses: " + str(courses))
     if st.session_state['content_opened'] == False and st.session_state['assistant_opened'] == False:
         dashboard_main()
     else:
@@ -81,6 +84,8 @@ def dashboard():
                 st.session_state['assistant_opened'] = False
                 st.session_state['selected_course'] = None
                 st.session_state['uploaded_files'] = []
+                st.session_state['messages'] = []
+                st.session_state['is_system_prompt'] = False
                 st.rerun()
 
         if st.session_state['content_opened'] == True:

@@ -1,5 +1,7 @@
 import streamlit as st
 from utils import init as init_page
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 st.set_page_config(
     page_title="Mastodon TutorAI",
