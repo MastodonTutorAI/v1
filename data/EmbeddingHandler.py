@@ -75,12 +75,3 @@ class ChromaDBManager:
             self.create_embeddings(chunks, metadata, course_db)
         except Exception as e:
             raise RuntimeError(e)
-        
-    def search_vector(self, course_id, query_text, k=3, filters=None):
-        """Search for similar vectors in the Chroma database based on the query text."""
-        try:
-            query_text = str(query_text)
-            course_db = self.get_course_db(course_id)
-            return course_db.similarity_search(query_text, k, filter=filters)
-        except Exception as e:
-            raise RuntimeError(e)
