@@ -70,10 +70,9 @@ def show_assistant():
                 with st.spinner("Loading..."):
                     print(st.session_state.messages)
                     print("--------------------")
-                    #full_response = service.get_response_model(st.session_state.messages)
-                    full_response = service.get_response_model_serverless(st.session_state.messages)
-                    #latest_response = full_response[-1]["content"]
+                    full_response = service.get_response_model(st.session_state.messages)
+                    latest_response = full_response[-1]["content"]
                     st.write(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            st.session_state.messages.append({"role": "assistant", "content": latest_response})
 
         save_conversation()

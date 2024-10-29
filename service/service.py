@@ -17,8 +17,7 @@ class Service:
         """
         self.mongodb = MongoDBHandler() 
         self.chroma_db_manager = ChromaDBManager()  
-        # self.pipe = self.init_pipe_model()
-        model.initialize_chatbot_serverless()
+        self.pipe = self.init_pipe_model()
         print('Service initialized')
 
     def set_course_id(self, course_id):
@@ -200,15 +199,6 @@ class Service:
         try:
             # messages = self.create_prompt(messages, messages[-1]["content"])
             return model.generate_response(self.pipe, messages, max_new_tokens)
-        except Exception as e:
-            print(f"Error generating response: {e}")
-            return f"Error generating response: {e}"
-
-    def get_response_model_serverless(self, messages, max_new_tokens=256):
-        """Generates a chatbot response using the serverless model."""
-        try:
-            # messages = self.create_prompt(messages, messages[-1]["content"])
-            return model.generate_response_serverless(messages, max_new_tokens)
         except Exception as e:
             print(f"Error generating response: {e}")
             return f"Error generating response: {e}"

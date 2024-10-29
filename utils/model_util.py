@@ -2,11 +2,9 @@ import torch
 from transformers import pipeline
 from dotenv import load_dotenv
 import os
-from huggingface_hub import InferenceClient
 
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
-client = None
 model_id = os.getenv("MODEL_ID")
 
 def initialize_chatbot():
@@ -16,10 +14,6 @@ def initialize_chatbot():
     else:  
         pipe = init_pipe_cpu()
     return pipe
-
-def initialize_chatbot_serverless():
-    global client
-    client = InferenceClient(api_key=hf_token)
 
 def init_pipe_gpu():
     pipe = pipeline(
@@ -37,23 +31,6 @@ def init_pipe_cpu():
         device_map="auto"
     )
     return pipe
-
-def generate_response_serverless(messages, max_new_tokens=256):
-    print(messages)
-    try:
-        stream = client.chat.completions.create(
-            model=model_id, 
-            messages=messages, 
-            max_tokens=max_new_tokens,
-            stream=True
-        )
-        response = ""
-        for chunk in stream:
-            response += chunk.choices[0].delta.content
-        return response
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        raise RuntimeError(e)
 
 def generate_response(pipe, messages, max_new_tokens=256):
     """Generate a response using the chatbot."""
