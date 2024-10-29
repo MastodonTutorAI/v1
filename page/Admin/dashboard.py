@@ -93,7 +93,7 @@ def dashboard():
 
         if st.session_state['assistant_opened'] == True:
             st.divider()
-            st.subheader("**Assistant For Deep Learning Course**")
+            st.subheader("**Assistant For "+ st.session_state['selected_course']['course_name'] + "**")
             show_assistant()
 
 dashboard()

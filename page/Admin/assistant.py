@@ -72,7 +72,7 @@ def show_assistant():
                     print("--------------------")
                     full_response = service.get_response_model(st.session_state.messages)
                     latest_response = full_response[-1]["content"]
-                    st.write(full_response)
+                    st.write(latest_response)
             st.session_state.messages.append({"role": "assistant", "content": latest_response})
 
         save_conversation()
