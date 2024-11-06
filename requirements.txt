@@ -12,5 +12,7 @@ langchain_openai
 langchain_chroma
 langchain
 bcrypt
+huggingface-hub
 pymongo
 streamlit_extras
+
