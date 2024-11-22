@@ -152,8 +152,10 @@ def extract_text_from_text(file):
     """Extracts text from an uploaded text file."""
     text_content = []
     try:
-        text_content=file.read().decode('utf-8')
+        text_content = file.read().decode('utf-8').splitlines()
+    except UnicodeDecodeError:
+        file.seek(0)
+        text_content = file.read().decode('latin-1').splitlines()
     except Exception as e:
-        raise RuntimeError(f"Error processing text file: {e}")
-
+        raise RuntimeError(f"Error processing document file: {e}")
     return text_content
