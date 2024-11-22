@@ -7,6 +7,7 @@ import numpy as np
 import ssl
 from pptx import Presentation
 import Document
+from multiprocessing import Pool, cpu_count
 
 # Create an unverified SSL context
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -76,44 +77,46 @@ def extract_text_from_pdf(file):
 def extract_text_from_ppt(file):
     """Extracts text from an uploaded PPTX file."""
     text_content = []
-    #Loading the presentation file
     try:
         prs = Presentation(file)
     except Exception as e:
-        raise RuntimeError(f"Error processing PPTX file: {e}")
-    
-    #Looping through all slides to extract text from each slide
-    for slide_num,slide in enumerate(prs.slides):
-        
-        for shape in slide.shapes:
-            
-            #Extracting text from text frames if present
-            if hasattr(shape, "text_frame") and shape.text_frame:
-                for paragraph in shape.text_frame.paragraphs:
-                    for run in paragraph.runs:
-                        text_content.append(run.text)
-            
-            #Extracting text from images if present
-            #Checking if the shape is an image
-            if shape.shape_type == 13:
-                try:
-                    image_bytes = shape.image_blob
-                    image = Image.open(io.BytesIO(image_bytes))
-                    image_np_array = np.array(image)
+        raise RuntimeError(f"Error processing PPTX file:{e}")
 
-                    if image_np_array.size == 0:
-                        continue        #Ignoring empty images , no need for raising error
-                    
-                    ocr_response = reader.readtext(image_np_array)
-                    text_extracted = "\n".join([i[1] for i in ocr_response])
-                    text_content.append(text_extracted)
-                except Exception as e:
-                    print(f"Error occured while extracting text from image on slide {slide_num+1}: {e}")
-                    raise RuntimeError(f"Error occured while extracting text from image on slide {slide_num+1}: {e}")
+    slides = list(enumerate(prs.slides))
+    with Pool(cpu_count()) as pool:
+        results = pool.map(process_slide, slides)
 
-    # #Removing duplicates
-    # text_content = list(dict.fromkeys(text_content)) 
+    for slide_processed in results:
+      text_content.append(slide_processed)
+
     return text_content
+
+def process_slide(slide_data):
+    slide_num, slide = slide_data
+    slide_content = []
+    try:
+      for shape in slide.shapes:
+          if hasattr(shape, "text_frame") and shape.text_frame:
+              for paragraph in shape.text_frame.paragraphs:
+                  for run in paragraph.runs:
+                      slide_content.append(run.text)
+
+          if shape.shape_type == 13:  #Check if the shape is an image
+              try:
+                  image_bytes = shape.image_blob
+                  image = Image.open(io.BytesIO(image_bytes))
+                  image_np_array = np.array(image)
+
+                  if image_np_array.size > 0:
+                    ocr_response = reader.readtext(image_np_array)
+                    for img in ocr_response:
+                      slide_content.append(img[1])
+              except Exception as e:
+                  print(f"Error processing image on slide {slide_num + 1}: {e}")
+    except Exception as e:
+        print(f"Error occurred while processing slide {slide_num + 1}: {e}")
+        raise RuntimeError(f"Error occurred while extracting text from image on slide {slide_num + 1}: {e}")
+    return slide_content 
 
 def extract_text_from_doc(file):
     """Extracts text form an uploaded document file. """
