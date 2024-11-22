@@ -6,3 +6,13 @@ easyocr     # For OCR on extracted images
 Pillow               # For handling images (PIL library)
 numpy
 python-pptx==0.6.21
+transformers        # for HuggingFace Model
+torch               # Pytorch
+langchain_openai
+langchain_chroma
+langchain
+bcrypt
+huggingface-hub
+pymongo
+streamlit_extras
+python-docx

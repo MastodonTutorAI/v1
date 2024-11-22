@@ -6,6 +6,7 @@ import easyocr
 import numpy as np
 import ssl
 from pptx import Presentation
+import Document
 
 # Create an unverified SSL context
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -20,6 +21,10 @@ def extract_text_and_images(file_type,file):
             return extract_text_from_pdf(file)
         elif file_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
             return extract_text_from_ppt(file)
+        elif file_type == "text/plain":
+            return extract_text_from_text(file)
+        elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            return extract_text_from_doc(file)
     except Exception as e:
         print(f"Error processing file: {e}")
         raise RuntimeError(f"Failed to process file: {e}")
@@ -51,7 +56,7 @@ def extract_text_from_pdf(file):
 
                     # Ensure the image is valid (non-empty)
                     if image_np.size == 0:
-                        raise ValueError("Empty image data encountered.")
+                        continue        #Ignoring empty images , no need for raising error
 
                     # Apply OCR on the image using EasyOCR
                     ocr_results = reader.readtext(image_np)
@@ -97,7 +102,7 @@ def extract_text_from_ppt(file):
                     image_np_array = np.array(image)
 
                     if image_np_array.size == 0:
-                        raise ValueError("Empty image found.")
+                        continue        #Ignoring empty images , no need for raising error
                     
                     ocr_response = reader.readtext(image_np_array)
                     text_extracted = "\n".join([i[1] for i in ocr_response])
@@ -108,4 +113,44 @@ def extract_text_from_ppt(file):
 
     # #Removing duplicates
     # text_content = list(dict.fromkeys(text_content)) 
+    return text_content
+
+def extract_text_from_doc(file):
+    """Extracts text form an uploaded document file. """
+    text_content = []
+    try:
+        doc=Document(file)
+        for para in doc.paragraphs:
+            text_content.append(para.text)
+
+        for table in doc.tables:
+            for row in table.rows:
+                for col in row.cells:
+                    text_content.append(col.text)
+
+        for i in doc.part.rels.values():
+            if i.reltype == 13:
+                image_data=doc.part.get_blob(i.target)
+                image=Image.open(io.BytesIO(image_data))
+                image_np_array = np.array(image)
+
+                if image_np_array.size == 0:
+                    continue        #Ignoring empty images , no need for raising error
+
+                ocr_response = reader.readtext(image_np_array)
+                text_extracted = "\n".join([i[1] for i in ocr_response])
+                text_content.append(text_extracted)
+    except Exception as e:
+        raise RuntimeError(f"Error processing text file: {e}")
+
+    return text_content
+
+def extract_text_from_text(file):
+    """Extracts text from an uploaded text file."""
+    text_content = []
+    try:
+        text_content=file.read().decode('utf-8')
+    except Exception as e:
+        raise RuntimeError(f"Error processing text file: {e}")
+
     return text_content
