@@ -15,4 +15,5 @@ bcrypt
 huggingface-hub
 pymongo
 streamlit_extras
+python-docx
 
