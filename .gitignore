@@ -1,1 +1,9 @@
 .env
+.idea/
+/venv/
+.pyc
+/data/chroma_db
+.cpython-310.pyc
+data/__pycache__
+service/__pycache__
+page/Admin/__pycache__

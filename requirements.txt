@@ -1,9 +1,9 @@
 streamlit
 python-dotenv
 PyMuPDF             # For extracting text and images from PDFs
-pdf2image        # To convert PDF pages to images
-easyocr     # For OCR on extracted images
-Pillow               # For handling images (PIL library)
+pdf2image           # To convert PDF pages to images
+easyocr             # For OCR on extracted images
+Pillow              # For handling images (PIL library)
 numpy
 python-pptx==0.6.21
 transformers        # for HuggingFace Model
@@ -16,3 +16,4 @@ huggingface-hub
 pymongo
 streamlit_extras
 python-docx
+

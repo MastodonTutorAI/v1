@@ -13,7 +13,7 @@ from multiprocessing import Pool, cpu_count
 ssl._create_default_https_context = ssl._create_unverified_context
 
 # Initialize EasyOCR reader (English as the language)
-reader = easyocr.Reader(['en'])
+reader = easyocr.Reader(['en'], gpu=True)
 
 def extract_text_and_images(file_type,file):
     """Extracts text and images from an uploaded file."""
@@ -48,7 +48,11 @@ def extract_text_from_pdf(file):
             for img_index, img in enumerate(page.get_images(full=True)):
                 xref = img[0]
                 base_image = pdf.extract_image(xref)
-                image_bytes = base_image["image"]
+                image_bytes = base_image.get("image")
+
+                # Skip if image data is missing or corrupted
+                if not image_bytes:
+                    continue
 
                 # Convert image bytes to a PIL Image and validate
                 try:
@@ -58,6 +62,10 @@ def extract_text_from_pdf(file):
                     # Ensure the image is valid (non-empty)
                     if image_np.size == 0:
                         continue        #Ignoring empty images , no need for raising error
+                        
+                    # Skip if the image dimensions are invalid
+                    if image_np.size == 0 or image_np.shape[0] == 0 or image_np.shape[1] == 0:
+                        continue
 
                     # Apply OCR on the image using EasyOCR
                     ocr_results = reader.readtext(image_np)
@@ -66,11 +74,9 @@ def extract_text_from_pdf(file):
                     extracted_text = "\n".join([res[1] for res in ocr_results])
                     text_content.append(extracted_text)
 
-                except Exception as e:
-                    print(f"Error processing image on page {page_num}: {e}")
-                    text_content.append(
-                        f"[Error processing image on page {page_num}]")
-
+                except Exception:
+                    # Skip this image if any error occurs during processing
+                    continue
     return text_content
 
 #ALISHA'S CODE
@@ -118,6 +124,7 @@ def process_slide(slide_data):
         raise RuntimeError(f"Error occurred while extracting text from image on slide {slide_num + 1}: {e}")
     return slide_content 
 
+  
 def extract_text_from_doc(file):
     """Extracts text form an uploaded document file. """
     text_content = []
@@ -147,6 +154,7 @@ def extract_text_from_doc(file):
         raise RuntimeError(f"Error processing text file: {e}")
 
     return text_content
+  
 
 def extract_text_from_text(file):
     """Extracts text from an uploaded text file."""
@@ -159,3 +167,4 @@ def extract_text_from_text(file):
     except Exception as e:
         raise RuntimeError(f"Error processing document file: {e}")
     return text_content
+   
