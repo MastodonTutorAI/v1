@@ -62,17 +62,22 @@ def show_assistant():
     
     if input := st.chat_input("What is up?"):
         st.session_state.messages.append({"role": "user", "content": input})
+        messages = []
+        messages.append({"role": "system", "content": service.get_system_prompt()})
+        messages.append({"role": "user", "content": input})
         with st.chat_message("user"):
             st.write(input)
 
         if st.session_state.messages[-1]["role"] != "assistant":
             with st.chat_message("assistant"):
                 with st.spinner("Loading..."):
-                    print(st.session_state.messages)
+                    #print(messages)
                     print("--------------------")
-                    full_response = service.get_response_model(st.session_state.messages)
-                    latest_response = full_response[-1]["content"]
+                    #full_response = service.get_response_model(st.session_state.messages)
+                    full_response = service.get_response_model_serverless(messages, max_new_tokens=500)
+                    print(full_response)
+                    # latest_response = full_response[-1]["content"]
                     st.write(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": latest_response})
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
 
         save_conversation()

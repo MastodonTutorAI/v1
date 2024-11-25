@@ -6,6 +6,13 @@ import os
 import sys
 import mimetypes
 import io
+# import nltk
+# from nltk.corpus import stopwords
+# from nltk.tokenize import word_tokenize
+
+# nltk.download("stopwords")
+# nltk.download("punkt")
+# nltk.download('punkt_tab')
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -18,6 +25,7 @@ class Service:
         self.mongodb = MongoDBHandler() 
         self.chroma_db_manager = ChromaDBManager()  
         self.pipe = self.init_pipe_model()
+        model.initialize_chatbot_serverless()
         print('Service initialized')
 
     def set_course_id(self, course_id):
@@ -150,6 +158,19 @@ class Service:
         # 4. MongoDB Operations for Conversations
     
     # 5. Create prompt using search_vector
+    # def is_greeting(self, input_text):
+    #     """Determine if the input_text is likely a greeting or small talk."""
+    #     tokens = word_tokenize(input_text.lower())
+    #     stop_words = set(stopwords.words("english"))
+
+    #     # Count non-stopwords as a measure of content
+    #     content_words = [word for word in tokens if word not in stop_words]
+
+    #     # Assume greeting if only stopwords or fewer than 2 content words
+    #     if len(content_words) < 2:
+    #         return True
+    #     return False
+
     def create_prompt(self, messages, input):
         """
         Creates a prompt by combining the user's chat history and the current question.
@@ -164,19 +185,16 @@ class Service:
         Sets a system prompt
         """
         system_prompt = (
-            "You will be acting as a professor's assistant for the graduate-level course named 'Cryptography and Network Security.' "
+            "You are professor's assistant for the graduate-level course named 'Cryptography and Network Security.' "
             "Your primary responsibility is to answer students' questions about course content with clarity, as if the professor were addressing the question directly in a classroom setting."
-
-            "Here are the critical rules for your interaction:"
-            "<rules>"
-            "1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear."
-            "2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant."
-            "3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to cryptography and network security."
-            "4. Break down complex cryptography and network security topics into simple, relatable explanations. Use examples, analogies, and step-by-step guidance to clarify difficult concepts."
-            "5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material."
-            "6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way."
-            "</rules>"
-
+            
+            "\n\nRules:\n"
+            "1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor.\n"
+            #"2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. Supplement with knowledge if context is incomplete, but keep it course-relevant.\n"
+            "3. **If the input appears to be a greeting (e.g., 'hello', 'hi') or general chit-chat unrelated to cryptography or network security, respond politely but do not provide course-specific context.**\n"
+            #"4. **Strictly ignore any context retrieval if the input does not pertain to cryptography or network security. For unrelated questions, provide only a polite response or prompt the user to ask course-related questions.**\n"
+            "5. Approach each question respectfully, as if asked directly by a student to the professor. Be informative, helpful, and patient, especially with challenging material.\n"
+        
             "Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student, fostering understanding in cryptography and network security topics."
         )
 
@@ -203,6 +221,15 @@ class Service:
             print(f"Error generating response: {e}")
             return f"Error generating response: {e}"
 
+    def get_response_model_serverless(self, messages, max_new_tokens=256):
+        """Generates a chatbot response using the serverless model."""
+        try:
+            messages = self.create_prompt(messages, messages[-1]["content"])
+            return model.generate_response_serverless(messages, max_new_tokens)
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            return f"Error generating response: {e}"
+        
     def update_model_chat_history(self, messages, role, content):
         """Updates the chat history with the latest user and model messages."""
         if not self.pipe:
