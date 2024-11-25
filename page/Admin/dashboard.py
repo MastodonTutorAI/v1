@@ -9,6 +9,7 @@ courses = st.session_state.courses
 
 @st.dialog("Create New Assistant")
 def create_new_assistant():
+    st.caption("All are required fields")
     course_name = st.text_input("Course Name", "", placeholder="e.g. Deep Learning")
     course_id = st.text_input("Course Id", placeholder="e.g. CS5900")
     professor_name = st.text_input("Professor Name", "")
@@ -21,6 +22,7 @@ def create_new_assistant():
             course_id = service.create_course(course_id, course_name, professor_name, description, st.session_state.user['_id'])
             st.success("Assistant created successfully!")
             get_courses()
+            st.rerun()
 
 def get_courses():
     with st.spinner("Fetching courses..."):
@@ -36,12 +38,13 @@ def course_row(course):
     with st.container(border=True, height=400):
         st.subheader(course['course_name'])
         st.write(f"**Professor:** {course['professor_name']}")
+        st.write(f"**Course Id:** {course['course_id']}")
         st.write(f"**Description:** {course['description']}")
         cols = st.columns([1, 6])
         cols[0].success("**Status:** Active", icon="✅")
 
         st.divider()
-        cols = st.columns([1, 1, 11])
+        cols = st.columns([1, 1, 1, 6])
 
         # Button to view content details
         if cols[0].button("View Details", key=f"content_details_{course['course_id']}"):
@@ -57,6 +60,13 @@ def course_row(course):
             st.session_state['selected_course'] = course
             service.set_course_id(course['course_id'])
             st.rerun()
+        
+        if cols[2].button("Delete Course", key=f"delete_course_{course['course_id']}", type="primary"):
+            service.set_course_id(course['course_id'])
+            if service.remove_course():
+                st.toast('Course deleted successfully')
+                get_courses()
+                st.rerun()
 
 def show_courses():
     with st.container(border=False):
@@ -71,6 +81,14 @@ def dashboard_main():
 
     show_courses()
 
+def reset_session_state():
+    st.session_state['content_opened'] = False
+    st.session_state['assistant_opened'] = False
+    st.session_state['selected_course'] = None
+    st.session_state['uploaded_files'] = []
+    st.session_state['messages'] = []
+    st.session_state['is_system_prompt'] = False
+
 def dashboard():
     if st.session_state.courses == []:
         get_courses()
@@ -80,12 +98,7 @@ def dashboard():
     else:
         if st.button("Go back"):
             if st.session_state['content_opened'] == True or st.session_state['assistant_opened'] == True:
-                st.session_state['content_opened'] = False
-                st.session_state['assistant_opened'] = False
-                st.session_state['selected_course'] = None
-                st.session_state['uploaded_files'] = []
-                st.session_state['messages'] = []
-                st.session_state['is_system_prompt'] = False
+                reset_session_state()
                 st.rerun()
 
         if st.session_state['content_opened'] == True:

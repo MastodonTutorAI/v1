@@ -21,7 +21,7 @@ def retrieve_files():
             st.session_state['uploaded_files'].append({
                 "file_name": file['file_name'],
                 "available": file['available'],
-                "file_id": file['file_id']  # Store file_id for referencing
+                "file_id": file['file_id']
             })
 
 def content_page_header():
@@ -91,40 +91,36 @@ def show_table():
                 col1.write(file_name)
                 preview_placeholder = col3.empty()
                 show_preview = preview_placeholder.button("Preview", key="Preview" + file_name, disabled=True)
-
-                col4.button("Delete", key="Delete" + file_name, on_click=lambda: st.session_state['uploaded_files'].remove(file_data))
+                
+                with col4:
+                    if st.button("Delete", key="Delete" + file_name):
+                        file_id = file_data['file_id']
+                        if service.delete_file_db(file_id):
+                            st.session_state['uploaded_files'].remove(file_data)
+                            st.toast('Availability updated for file: ' + file_name)
+                            time.sleep(0.5)
+                            st.rerun()
+                        else:
+                            st.toast('Something went wrong.')
 
                 with col2:
-                    assistant_checkbox = st.checkbox("Available", key="assistant_checkbox_" + file_name, value=file_data['available'])
-                file_data['available'] = assistant_checkbox
+                    if file_data['available']:
+                        button_label = "Revoke Access"
+                    else:
+                        button_label = "Grant Access"
+                    
+                    if st.button(button_label, key="availability_button_" + file_name):
+                        value = file_data['available'] = not file_data['available']
+                        print(value)
+                        file_id = file_data['file_id']
+                        file_name = file_data['file_name']
+                        if service.set_assistant_available(file_id, value):
+                            st.toast('Availability updated for file: ' + file_name)
+                            time.sleep(0.5)
+                            st.rerun()
+                        else:
+                            st.toast('Something went wrong.')
 
-                # Show preview if the button is clicked
-                # if show_preview:
-                #     # Fetch the file binary only when preview is requested
-                #     course_material_metadata = service.get_file_by_id(file_id)
-
-                #     if course_material_metadata and 'actual_file' in course_material_metadata:
-                #         file_bytes = course_material_metadata['actual_file']
-
-                #         # Process and display PDF content for preview
-                #         st.write(f"Previewing file: {file_name}")
-                #         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-                #             for page in pdf.pages:
-                #                 st.write(page.extract_text())
-
-                #         # Display images in the PDF
-                #         pdf_document = fitz.open(stream=file_bytes, filetype="pdf")
-                #         for page_num in range(pdf_document.page_count):
-                #             page = pdf_document[page_num]
-                #             image_list = page.get_images(full=True)
-                #             if image_list:
-                #                 st.write(f"Images on Page {page_num + 1}:")
-                #                 for img_index, img in enumerate(image_list):
-                #                     xref = img[0]
-                #                     base_image = pdf_document.extract_image(xref)
-                #                     image_bytes = base_image["image"]
-                #                     st.image(image_bytes, caption=f"Page {page_num + 1} - Image {img_index + 1}")
-                #     else:
-                #         st.error("File not found in database.")
+                        #st.write(f"File ID: {file_id}")
         else:
             st.write("No files uploaded yet.")

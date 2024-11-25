@@ -161,4 +161,65 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error removing conversation: {e}")
 
+    def remove_course(self, course_id):
+        try:
+            # Delete course
+            course_result = self.db.courses.delete_one({'course_id': course_id})
+            if course_result.deleted_count == 0:
+                print("Course not found.")
+                return False
 
+            # Delete course material metadata
+            metadata_result = self.db.course_material_metadata.delete_many({'course_id': course_id})
+            print(f"Deleted {metadata_result.deleted_count} course material metadata documents.")
+
+            # Delete files from GridFS
+            files = self.db.course_material_metadata.find({'course_id': course_id})
+            for file in files:
+                self.fs.delete(file['file_id'])
+            print("Deleted associated files from GridFS.")
+
+            print("Course removed successfully.")
+            return True
+        except Exception as e:
+            raise Exception(f"Error removing course: {e}")
+
+    def set_assistant_available(self, file_id, value):
+        try:
+            # Update the availability status for the given file_id
+            result = self.db.course_material_metadata.update_one(
+                {'file_id': file_id},
+                {'$set': {'available': value}}
+            )
+            
+            if result.matched_count == 0:
+                print("File not found.")
+                return False
+    
+            print("Availability status updated successfully.")
+            return True
+        except Exception as e:
+            raise Exception(f"Error updating availability status: {e}")
+
+    def remove_file(self, file_id):
+        try:
+            # Find the file in the course_material_metadata collection
+            file = self.db.course_material_metadata.find_one({'file_id': file_id})
+            if not file:
+                print("File not found.")
+                return False
+    
+            # Delete the file from GridFS
+            self.fs.delete(file_id)
+            print("File deleted from GridFS.")
+    
+            # Remove the file metadata from the course_material_metadata collection
+            result = self.db.course_material_metadata.delete_one({'file_id': file_id})
+            if result.deleted_count == 0:
+                print("File metadata not found.")
+                return False
+    
+            print("File metadata removed successfully.")
+            return True
+        except Exception as e:
+            raise Exception(f"Error removing file: {e}")

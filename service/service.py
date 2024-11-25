@@ -97,11 +97,11 @@ class Service:
         """
         return self.mongodb.get_courses(professor_id)
 
-    def delete_file_db(self, file, collection_name):
+    def delete_file_db(self, file_id):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
         """
-        pass  # Logic to delete file and text in MongoDB goes here
+        return self.mongodb.remove_file(file_id)
     
     def login(self, username, hashed_password):
         """
@@ -126,6 +126,15 @@ class Service:
         Retrieves a conversation from MongoDB.
         """
         return self.mongodb.get_conversation(conversation_id)
+
+    def remove_course(self):
+        """
+        Removes course and metadata from MongoDB.
+        """
+        return self.mongodb.remove_course(self.course_id)
+
+    def set_assistant_available(self, file_id, value):
+        return self.mongodb.set_assistant_available(file_id, value)
 
     # 3. Vector Operations
     # SHREYAS

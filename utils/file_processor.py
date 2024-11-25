@@ -6,7 +6,7 @@ import easyocr
 import numpy as np
 import ssl
 from pptx import Presentation
-import Document
+from docx import Document
 from multiprocessing import Pool, cpu_count
 
 # Create an unverified SSL context
