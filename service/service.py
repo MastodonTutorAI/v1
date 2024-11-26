@@ -97,6 +97,9 @@ class Service:
         """
         return self.mongodb.get_courses(professor_id)
 
+    def get_student_courses(self, student_id):
+        return self.mongodb.get_student_courses(student_id)
+
     def delete_file_db(self, file_id):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
@@ -237,7 +240,9 @@ class Service:
             return "[Error displaying conversation]"
         
 # # To load data for development purposes.
-# file_service = Service()
+#file_service = Service()
+# password = file_service.mongodb.hash_password('student')
+# print(password)
 # # file_service.initialize_collections()
 # response = file_service.get_response_model(["Hello!"], max_new_tokens=256)
 # print(response)

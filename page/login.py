@@ -21,8 +21,8 @@ def login():
     colms1[1].title("Mastodon TutorAI")
     container = colms2[1].container(border=True)
     with container:
-        username = st.text_input("Username", "admin")
-        password = st.text_input("Password", "admin", type="password")
+        username = st.text_input("Username", "student")
+        password = st.text_input("Password", "student", type="password")
         if st.button(label='Login'):
             is_authenticated, role = authenticate_user(username, password)
             

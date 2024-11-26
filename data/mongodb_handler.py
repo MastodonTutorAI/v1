@@ -138,6 +138,21 @@ class MongoDBHandler:
             return courses
         except Exception as e:
             raise Exception(f"Error retrieving courses: {e}")
+
+    def get_student_courses(self, student_id):
+        try:
+            student_courses = self.db.student_courses.find({'student_id': student_id})
+            all_course_ids = []
+            for student_course in student_courses:
+                course_ids = student_course['course_id'].split(',')
+                all_course_ids.extend(course_ids)
+                
+            courses = self.db.courses.find({'course_id': {'$in': all_course_ids}})
+            print("Fetched all course details successfully.")
+            return courses
+
+        except Exception as e:
+            raise Exception(f"Error fetching course details: {e}")
     
     # function to save conversation to db
     def save_conversation(self, conversation_data):
