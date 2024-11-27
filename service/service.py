@@ -71,7 +71,7 @@ class Service:
         """
         Stores a vector in the FAISS vector store with associated metadata.
         """
-        self.chroma_db_manager.store_vector(course_id, document_id, extracted_text)
+        self.chroma_db_manager.store_vector(course_id, str(document_id), extracted_text)
 
     # RAHUL
     def search_vector(self, query_vector):

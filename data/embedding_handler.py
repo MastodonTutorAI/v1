@@ -83,7 +83,8 @@ class ChromaDBManager:
             results = course_db.get(where={"document_id": document_id})
 
             if not results or not results['ids']:
-                raise ValueError(f"No chunks found for document_id {document_id} in course {course_id}")
+                print(f"Document ID {document_id} not found in Chroma DB for course ID {course_id}.")
+                return
             
             updated_metadata = [{"available": available, **metadata} for metadata in results['metadatas']] 
 
@@ -91,10 +92,11 @@ class ChromaDBManager:
             course_db.delete(ids=ids_to_delete)
 
             course_db.add_texts(texts=results['documents'], metadatas=updated_metadata, embeddings=results['embeddings'], ids=ids_to_delete)
+            print(f"Availability of document ID Changed Successfully: {document_id}")
         except Exception as e:
             raise RuntimeError(f"Error changing availability: {e}")
 
-    def search_vector(self, course_id, query_text, k=3,filters=True):
+    def search_vector(self, course_id, query_text, k=3,filters={"available": True}):
         """Search for similar vectors in the Chroma database based on the query text."""
         try:
             query_text = str(query_text)
@@ -130,15 +132,15 @@ class ChromaDBManager:
             raise RuntimeError(e)
 
 
-db = ChromaDBManager()
-extracted_text = "The quick brown fox jumps over the lazy dog."
-#db.create_course_db(2)
-db.store_vector(2, 1, extracted_text)
-db.change_availability(2, 1, False)
-result = db.search_vector(2, "quick", k=3,filters={"available": True})
-for i, item in enumerate(result, start=1):
-     print(f"Result {i}:")
-     print(f"Document ID: {item.metadata.get('document_id')}")
-     print(f"Available: {item.metadata.get('available')}")
-     print(f"Content Snippet:\n{item.page_content}\n")
-#db.remove_vector(2, 1)
+# db = ChromaDBManager()
+# extracted_text = "The quick brown fox jumps over the lazy dog."
+# #db.create_course_db(2)
+# db.store_vector(2, 1, extracted_text)
+# db.change_availability(2, 1, False)
+# result = db.search_vector(2, "quick", k=3,filters={"available": True})
+# for i, item in enumerate(result, start=1):
+#      print(f"Result {i}:")
+#      print(f"Document ID: {item.metadata.get('document_id')}")
+#      print(f"Available: {item.metadata.get('available')}")
+#      print(f"Content Snippet:\n{item.page_content}\n")
+# #db.remove_vector(2, 1)
