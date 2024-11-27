@@ -6,7 +6,7 @@ import mimetypes
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.file_processor import extract_text_and_images # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
-from data.EmbeddingHandler import ChromaDBManager
+from data.embedding_handler import ChromaDBManager
 
 class Service:
 

@@ -54,7 +54,7 @@ class ChromaDBManager:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         try:
             chunks = text_splitter.split_text(text)
-            metadata = [{"available": True, "document_id": document_id} for _ in chunks]
+            metadata = [{"available": False, "document_id": document_id} for _ in chunks]
             return chunks, metadata
         except Exception as e:
             raise RuntimeError(e) 
@@ -75,3 +75,70 @@ class ChromaDBManager:
             self.create_embeddings(chunks, metadata, course_db)
         except Exception as e:
             raise RuntimeError(e)
+        
+    def change_availability(self, course_id, document_id, available):
+        """Change the availability of a document in the Chroma database."""
+        try:
+            course_db = self.get_course_db(course_id)
+            results = course_db.get(where={"document_id": document_id})
+
+            if not results or not results['ids']:
+                raise ValueError(f"No chunks found for document_id {document_id} in course {course_id}")
+            
+            updated_metadata = [{"available": available, **metadata} for metadata in results['metadatas']] 
+
+            ids_to_delete = results['ids']
+            course_db.delete(ids=ids_to_delete)
+
+            course_db.add_texts(texts=results['documents'], metadatas=updated_metadata, embeddings=results['embeddings'], ids=ids_to_delete)
+        except Exception as e:
+            raise RuntimeError(f"Error changing availability: {e}")
+
+    def search_vector(self, course_id, query_text, k=3,filters=True):
+        """Search for similar vectors in the Chroma database based on the query text."""
+        try:
+            query_text = str(query_text)
+            course_db = self.get_course_db(course_id)
+            return course_db.similarity_search(query_text, k,filter=filters)
+        except Exception as e:
+            raise RuntimeError(e)
+    
+    def remove_vector(self, course_id, document_id):
+        """Remove a vector from the Chroma database and delete the course folder if no embeddings remain."""
+        try:
+            course_db = self.get_course_db(course_id)
+            
+            # Retrieve all embeddings associated with the specified document ID
+            ids_to_delete = course_db.get(where={"document_id": document_id})
+            if 'ids' in ids_to_delete:
+                ids_to_delete = ids_to_delete['ids']
+            else:
+                ids_to_delete = []
+
+            # Delete the embeddings if any IDs were found
+            if ids_to_delete:
+                course_db.delete(ids=ids_to_delete)
+                print(f"Embeddings for document_id {document_id} removed from Chroma DB.")
+                remaining_embeddings = course_db.get( where={"document_id": document_id})
+                if 'ids' in remaining_embeddings and not remaining_embeddings['ids']:
+                    print(f"Verified that all embeddings for document_id {document_id} have been removed for course_id {course_id}.")
+                else:
+                    print(f"Some embeddings for document_id {document_id} remain in Chroma DB of course_id {course_id}.")
+            else:
+                print(f"No embeddings found for document_id {document_id} in Chroma DB.")
+        except Exception as e:
+            raise RuntimeError(e)
+
+
+db = ChromaDBManager()
+extracted_text = "The quick brown fox jumps over the lazy dog."
+#db.create_course_db(2)
+db.store_vector(2, 1, extracted_text)
+db.change_availability(2, 1, False)
+result = db.search_vector(2, "quick", k=3,filters={"available": True})
+for i, item in enumerate(result, start=1):
+     print(f"Result {i}:")
+     print(f"Document ID: {item.metadata.get('document_id')}")
+     print(f"Available: {item.metadata.get('available')}")
+     print(f"Content Snippet:\n{item.page_content}\n")
+#db.remove_vector(2, 1)
