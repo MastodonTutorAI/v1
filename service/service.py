@@ -1,31 +1,44 @@
+from utils.file_processor import extract_text_and_images  # Kanishk's import
+from data.mongodb_handler import MongoDBHandler
+from data.EmbeddingHandler import ChromaDBManager
+from utils import model_util as model
 import os
 import sys
 import mimetypes
+import io
 
-# Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.file_processor import extract_text_and_images # Kanishk's import
-from data.mongodb_handler import MongoDBHandler
-from data.embedding_handler import ChromaDBManager
 
 class Service:
 
-    def __init__(self, course_id):
+    def __init__(self):
         """
         Initialize the Service class with MongoDB client and FAISS index for vector storage.
         """
         self.mongodb = MongoDBHandler() 
         self.chroma_db_manager = ChromaDBManager()  
-        self.course_id = course_id  
+        self.pipe = self.init_pipe_model()
         print('Service initialized')
 
-     #ALISHA
+    def set_course_id(self, course_id):
+        self.course_id = course_id
+
+    #ALISHA
     #Checking for file type
-    def get_file_type(self, file_content):
-        file_name = getattr(file_content, 'name', None)
+    def get_file_type(self, file_name):
+        if not file_name:
+            raise ValueError("File name is missing; cannot determine file type")
+        
         mime_type, _ = mimetypes.guess_type(file_name)
+
         if not mime_type:
-            raise ValueError(f"Cannot determine file type for {file_name}")
+            # Extract the file extension and raise an error if unknown
+            file_extension = os.path.splitext(file_name)[1]
+            if not file_extension:
+                raise ValueError("File extension is missing; cannot determine file type")
+            else:
+                raise ValueError(f"Unknown file type for extension '{file_extension}' in {file_name}")
+
         return mime_type
 
     # 1. Embedding Creation
@@ -36,100 +49,186 @@ class Service:
         Then, embeddings are created and stored in FAISS.
         """
         try:
-            file_type = self.get_file_type(file_content)
-            extracted_text = extract_text_and_images(file_type,file_content)
+            extracted_text = extract_text_and_images(file_content.type, file_content)
             if not extracted_text:
-                raise ValueError("Failed to extract text from the given file.")
+               raise ValueError("Failed to extract text from the given file.")
             
             # Save extracted text to MongoDB
-            self.save_file_db(file_content, extracted_text, course_id)
+            file_id = self.save_file_db(file_content, extracted_text, course_id)
 
             # After saving to DB, create embeddings in FAISS
-            self.store_vector(self.create_vector(extracted_text),
-                            {"file_content": file_content})
+            self.store_vector(course_id=course_id, document_id=file_id, extracted_text=extracted_text)
         except Exception as e:
             print(f"Error processing file: {e}")
             raise RuntimeError(f"Failed to process file: {e}")
-        
+  
     # 2. Save to MongoDB (Abstract Layer)
     # DEEP
+    def initialize_collections(self):
+        """
+        Initializes tables and loads data into MongoDB.
+        """
+        self.mongodb.initialize_collections()
+
     def save_file_db(self, file_content, extracted_text, course_id):
         """
         Saves the file and their extracted text to MongoDB.
         """
-        self.mongodb.save_file(file_content, extracted_text, course_id)
+        return self.mongodb.save_file(file_content, extracted_text, course_id)
+
+    def get_file_db(self, course_id):
+        """
+        Retrieves the file and extracted text from the specified MongoDB collection.
+        """
+        return self.mongodb.get_files(course_id)
+    
+    def create_course(self, course_id, course_name, professor_name, description, professor_id):
+        """
+        Creates a new course in MongoDB.
+        """
+        course_id = self.mongodb.create_course(course_id, course_name, professor_name, description, professor_id)
+        if course_id:
+            self.chroma_db_manager.create_course_db(course_id=course_id)
+        return course_id
+
+    def get_courses(self, professor_id):
+        """
+        Retrieves all courses from MongoDB.
+        """
+        return self.mongodb.get_courses(professor_id)
 
     def delete_file_db(self, file, collection_name):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
         """
         pass  # Logic to delete file and text in MongoDB goes here
+    
+    def login(self, username, hashed_password):
+        """
+        Validates the user login credentials from MongoDB.
+        """
+        return self.mongodb.login(username, hashed_password)
+    
+    def save_conversation(self, conversation_data):
+        """
+        Saves a conversation to MongoDB.
+        """
+        return self.mongodb.save_conversation(conversation_data)
+
+    def remove_conversation(self, conversation_id):
+        """
+        Removes a conversation from MongoDB.
+        """
+        return self.mongodb.remove_conversation(conversation_id)
+
+    def get_conversation(self, conversation_id):
+        """
+        Retrieves a conversation from MongoDB.
+        """
+        return self.mongodb.get_conversation(conversation_id)
 
     # 3. Vector Operations
     # SHREYAS
     def store_vector(self, course_id, document_id, extracted_text):
         """
-        Stores a vector in the FAISS vector store with associated metadata.
+        Stores a vector in the chroma vector store with associated metadata.
         """
         self.chroma_db_manager.store_vector(course_id, str(document_id), extracted_text)
 
-    # RAHUL
-    def search_vector(self, query_vector):
+    def search_vector(self, query_text):
         """
         Searches for similar vectors in the FAISS vector store based on the query vector.
         """
-        return self.vector_store.search(query_vector)
+        return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text)
 
-    # SHREYAS
     def remove_vector(self, vector_id):
         """
         Removes a vector from the FAISS vector store.
         """
         self.vector_store.remove(vector_id)
 
-    # 4. MongoDB Operations for Conversations
-    # DEEP
-    def fetch_conversation(self, user_id):
-        """
-        Fetches conversation history for the current user from MongoDB.
-        """
-        pass  # Logic to fetch user conversation from MongoDB
-
-    # DEEP
-    def save_conversation(self, user_id, conversation):
-        """
-        Saves the current conversation for the current user in MongoDB.
-        """
-        pass  # Logic to save the current conversation in MongoDB
-
-    # 5. Create prompt using chat history
-    # DEEP/AJINKYA
-    def create_prompt(self, user_id, current_question):
+        # 4. MongoDB Operations for Conversations
+    
+    # 5. Create prompt using search_vector
+    def create_prompt(self, messages, input):
         """
         Creates a prompt by combining the user's chat history and the current question.
         """
-        chat_history = self.fetch_conversation(user_id)
-        prompt = chat_history + "\nQ: " + current_question
-        return prompt
+        chunks = self.search_vector(input)
+        messages.append({"role": "system", "content": "Use below information to answer the question. " + str(chunks)})
+        return messages
 
     # 6. Set Default Prompt
-    def set_default_prompt(self):
+    def get_system_prompt(self):
         """
-        Sets a default prompt if no conversation history is found.
+        Sets a system prompt
         """
-        return "Default prompt to use if no chat history exists."
+        system_prompt = (
+            "You will be acting as a professor's assistant for the graduate-level course named 'Cryptography and Network Security.' "
+            "Your primary responsibility is to answer students' questions about course content with clarity, as if the professor were addressing the question directly in a classroom setting."
+
+            "Here are the critical rules for your interaction:"
+            "<rules>"
+            "1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear."
+            "2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant."
+            "3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to cryptography and network security."
+            "4. Break down complex cryptography and network security topics into simple, relatable explanations. Use examples, analogies, and step-by-step guidance to clarify difficult concepts."
+            "5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material."
+            "6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way."
+            "</rules>"
+
+            "Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student, fostering understanding in cryptography and network security topics."
+        )
+
+        return system_prompt
 
     # 7. Call Model API for Response
     # AJINKYA
-    def get_response(self, prompt):
-        """
-        Calls the model API to get a response based on the given prompt.
-        """
-        response = self.model.query(prompt)
-        return response
+    def init_pipe_model(self):
+        """Initializes the chatbot pipeline model."""
+        try:
+            return model.initialize_chatbot()
+        except Exception as e:
+            print(f"Error loading model: {e}")
 
-    def initialize_collections(self):
-        """
-        Initializes tables and loads data into MongoDB.
-        """
-        self.mongodb.initialize_collections()
+    def get_response_model(self, messages, max_new_tokens=256):
+        """Generates a chatbot response using the pipeline."""
+        if not self.pipe:
+            print("Model not initialized.")
+            return "[Error: Model not initialized]"
+        try:
+            # messages = self.create_prompt(messages, messages[-1]["content"])
+            return model.generate_response(self.pipe, messages, max_new_tokens)
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            return f"Error generating response: {e}"
+
+    def update_model_chat_history(self, messages, role, content):
+        """Updates the chat history with the latest user and model messages."""
+        if not self.pipe:
+            print("Model not initialized.")
+            return "[Error: Model not initialized]"
+
+        try:
+            return model.update_chat_history(self.pipe, messages, role, content)
+        except Exception as e:
+            print(f"Error updating history: {e}")
+            return "[Error updating history]"
+
+    def display_chat(self, messages):
+        """Displays the chat conversation."""
+        if not messages:
+            print("Chat not available.")
+            return "[Error: No chat available]"
+
+        try:
+            return model.display_conversation(messages)
+        except Exception as e:
+            print(f"Error displaying conversation: {e}")
+            return "[Error displaying conversation]"
+        
+# # To load data for development purposes.
+# file_service = Service()
+# # file_service.initialize_collections()
+# response = file_service.get_response_model(["Hello!"], max_new_tokens=256)
+# print(response)
