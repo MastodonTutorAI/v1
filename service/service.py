@@ -1,6 +1,6 @@
 from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
-from data.EmbeddingHandler import ChromaDBManager
+from data.embedding_handler import ChromaDBManager
 from utils import model_util as model
 import os
 import sys
@@ -57,7 +57,7 @@ class Service:
             file_id = self.save_file_db(file_content, extracted_text, course_id)
 
             # After saving to DB, create embeddings in FAISS
-            self.store_vector(course_id=course_id, document_id=file_id, extracted_text=extracted_text)
+            self.store_vector(course_id=course_id, document_id=str(file_id), extracted_text=extracted_text)
         except Exception as e:
             print(f"Error processing file: {e}")
             raise RuntimeError(f"Failed to process file: {e}")
@@ -137,15 +137,15 @@ class Service:
 
     def search_vector(self, query_text):
         """
-        Searches for similar vectors in the FAISS vector store based on the query vector.
+        Searches for similar vectors in the ChromaDb  store based on the query text.
         """
         return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text)
 
-    def remove_vector(self, vector_id):
+    def remove_vector(self, file_id):
         """
-        Removes a vector from the FAISS vector store.
+        Removes a vector from the ChromaDb vector store.
         """
-        self.vector_store.remove(vector_id)
+        self.chroma_db_manager.remove_vector(self.course_id, file_id)
 
         # 4. MongoDB Operations for Conversations
     
