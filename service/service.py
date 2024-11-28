@@ -1,6 +1,6 @@
 from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
-from data.EmbeddingHandler import ChromaDBManager
+from data.embedding_handler import ChromaDBManager
 from utils import model_util as model
 import os
 import sys
@@ -23,24 +23,6 @@ class Service:
     def set_course_id(self, course_id):
         self.course_id = course_id
 
-    #ALISHA
-    #Checking for file type
-    def get_file_type(self, file_name):
-        if not file_name:
-            raise ValueError("File name is missing; cannot determine file type")
-        
-        mime_type, _ = mimetypes.guess_type(file_name)
-
-        if not mime_type:
-            # Extract the file extension and raise an error if unknown
-            file_extension = os.path.splitext(file_name)[1]
-            if not file_extension:
-                raise ValueError("File extension is missing; cannot determine file type")
-            else:
-                raise ValueError(f"Unknown file type for extension '{file_extension}' in {file_name}")
-
-        return mime_type
-
     # 1. Embedding Creation
     def create_embedding(self, file_content, course_id):
         """
@@ -55,9 +37,9 @@ class Service:
             
             # Save extracted text to MongoDB
             file_id = self.save_file_db(file_content, extracted_text, course_id)
-
+            
             # After saving to DB, create embeddings in FAISS
-            self.store_vector(course_id=course_id, document_id=file_id, extracted_text=extracted_text)
+            self.store_vector(course_id=course_id, document_id=str(file_id), extracted_text=extracted_text)
         except Exception as e:
             print(f"Error processing file: {e}")
             raise RuntimeError(f"Failed to process file: {e}")
@@ -100,10 +82,11 @@ class Service:
     def get_student_courses(self, student_id):
         return self.mongodb.get_student_courses(student_id)
 
-    def delete_file_db(self, file_id):
+    def delete_file(self, file_id):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
         """
+        self.remove_vector(file_id=file_id)
         return self.mongodb.remove_file(file_id)
     
     def login(self, username, hashed_password):
@@ -124,11 +107,11 @@ class Service:
         """
         return self.mongodb.remove_conversation(conversation_id)
 
-    def get_conversation(self, conversation_id):
+    def get_conversation(self, user_id):
         """
         Retrieves a conversation from MongoDB.
         """
-        return self.mongodb.get_conversation(conversation_id)
+        return self.mongodb.get_conversation(self.course_id, user_id)
 
     def remove_course(self):
         """
@@ -137,6 +120,7 @@ class Service:
         return self.mongodb.remove_course(self.course_id)
 
     def set_assistant_available(self, file_id, value):
+        self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=file_id, available=value)
         return self.mongodb.set_assistant_available(file_id, value)
 
     # 3. Vector Operations
@@ -153,14 +137,9 @@ class Service:
         """
         return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text)
 
-    def remove_vector(self, vector_id):
-        """
-        Removes a vector from the FAISS vector store.
-        """
-        self.vector_store.remove(vector_id)
+    def remove_vector(self, file_id):
+        self.chroma_db_manager.remove_vector(course_id=self.course_id, document_id=file_id)
 
-        # 4. MongoDB Operations for Conversations
-    
     # 5. Create prompt using search_vector
     def create_prompt(self, messages, input):
         """
@@ -209,7 +188,7 @@ class Service:
             print("Model not initialized.")
             return "[Error: Model not initialized]"
         try:
-            # messages = self.create_prompt(messages, messages[-1]["content"])
+            messages = self.create_prompt(messages, messages[-1]["content"])
             return model.generate_response(self.pipe, messages, max_new_tokens)
         except Exception as e:
             print(f"Error generating response: {e}")

@@ -51,6 +51,7 @@ class MongoDBHandler:
         self.create_student_courses_collection()
         self.create_professor_courses_collection()
         self.create_course_material_metadata_collection()
+        self.create_conversations_collection()
 
     # function to save file and their extracted text to db
     def save_file(self, file_content, extracted_text, course_id):
@@ -157,9 +158,29 @@ class MongoDBHandler:
     # function to save conversation to db
     def save_conversation(self, conversation_data):
         try:
-            conversation_id = self.db.conversations.insert_one(conversation_data).inserted_id
-            print("Conversation saved successfully.")
-            return conversation_id
+            for conversation in conversation_data:
+                # Remove 'status' before saving to the database
+                conversation_to_save = {key: value for key, value in conversation.items() if key != "status"}
+
+                if conversation.get("status") == "New":
+                    # Insert new conversation
+                    conversation_id = self.db.conversations.insert_one(conversation_to_save).inserted_id
+                    print(f"New conversation inserted with ID: {conversation_id}")
+
+                elif conversation.get("status") == "Updated":
+                    # Update existing conversation based on conversation_id
+                    if "_id" in conversation:
+                        conversation_id = ObjectId(conversation["_id"])
+                        result = self.db.conversations.update_one(
+                            {"_id": conversation_id},
+                            {"$set": conversation_to_save}
+                        )
+                        if result.matched_count > 0:
+                            print(f"Conversation with ID {conversation_id} updated successfully.")
+                        else:
+                            print(f"Conversation with ID {conversation_id} not found for update.")
+                    else:
+                        raise ValueError("conversation_id is required for updating a conversation.")
         except Exception as e:
             raise Exception(f"Error saving conversation: {e}")
 
@@ -176,11 +197,23 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error removing conversation: {e}")
 
+    def get_conversation(self, course_id, user_id):
+        try:
+            conversation = self.db.conversations.find({'course_id': course_id, 'user_id': user_id})
+            if conversation:
+                print("Conversation retrieved successfully.")
+                return conversation
+            else:
+                print("Conversation not found.")
+                return None
+        except Exception as e:
+            raise Exception(f"Error retrieving conversation: {e}")
+
     def remove_course(self, course_id):
         try:
             # Delete course
             course_result = self.db.courses.delete_one({'course_id': course_id})
-            if course_result.deleted_count == 0:
+            if (course_result.deleted_count == 0):
                 print("Course not found.")
                 return False
 

@@ -95,7 +95,7 @@ def show_table():
                 with col4:
                     if st.button("Delete", key="Delete" + file_name):
                         file_id = file_data['file_id']
-                        if service.delete_file_db(file_id):
+                        if service.delete_file(file_id):
                             st.session_state['uploaded_files'].remove(file_data)
                             st.toast('Availability updated for file: ' + file_name)
                             time.sleep(0.5)

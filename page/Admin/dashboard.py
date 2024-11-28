@@ -88,6 +88,7 @@ def reset_session_state():
     st.session_state['uploaded_files'] = []
     st.session_state['messages'] = []
     st.session_state['is_system_prompt'] = False
+    st.session_state['selected_conversation'] = None
 
 def dashboard():
     if st.session_state.courses == []:
@@ -97,9 +98,12 @@ def dashboard():
         dashboard_main()
     else:
         if st.button("Go back"):
-            if st.session_state['content_opened'] == True or st.session_state['assistant_opened'] == True:
-                reset_session_state()
-                st.rerun()
+            if st.session_state['assistant_opened'] == True:
+                #Save Conversations
+                service.save_conversation(conversation_data=st.session_state.conversations)
+            
+            reset_session_state()
+            st.rerun()
 
         if st.session_state['content_opened'] == True:
             show_content()
@@ -107,6 +111,9 @@ def dashboard():
         if st.session_state['assistant_opened'] == True:
             st.divider()
             st.subheader("**Assistant For "+ st.session_state['selected_course']['course_name'] + "**")
+            st.caption("🚀 AI assistant of " + st.session_state['selected_course']['professor_name'])
+            with st.spinner("Loading..."):
+                st.session_state.conversations = list(service.get_conversation(str(st.session_state.user['_id'])))
             show_assistant()
 
 dashboard()
