@@ -1,11 +1,21 @@
 import streamlit as st
 from page.Admin.content import show_content
-from page.Admin.assistant import show_assistant
+# from page.Admin.assistant import show_assistant
+from page.Admin.assistant_new import show_assistant
 
 admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant", icon=":material/chat:")
 
 service = st.session_state.service
 courses = st.session_state.courses
+
+def get_conversation():
+    if st.session_state['conversation_fetch_flag'] == True:
+        #Get Conversations
+        with st.spinner("Loading..."):
+            st.session_state.conversations = list(service.get_conversation(str(st.session_state.user['_id'])))
+        for conversation in st.session_state.conversations:
+            conversation['status'] = 'Updated'
+        st.session_state['conversation_fetch_flag'] = False
 
 @st.dialog("Create New Assistant")
 def create_new_assistant():
@@ -57,6 +67,7 @@ def course_row(course):
         # Button to view assistant
         if cols[1].button("View Assistant", key=f"assistant_details_{course['course_id']}"):
             st.session_state['assistant_opened'] = True
+            st.session_state['conversation_fetch_flag'] = True
             st.session_state['selected_course'] = course
             service.set_course_id(course['course_id'])
             st.rerun()
@@ -112,8 +123,7 @@ def dashboard():
             st.divider()
             st.subheader("**Assistant For "+ st.session_state['selected_course']['course_name'] + "**")
             st.caption("🚀 AI assistant of " + st.session_state['selected_course']['professor_name'])
-            with st.spinner("Loading..."):
-                st.session_state.conversations = list(service.get_conversation(str(st.session_state.user['_id'])))
+            get_conversation()
             show_assistant()
 
 dashboard()

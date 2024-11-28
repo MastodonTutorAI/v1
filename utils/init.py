@@ -50,8 +50,8 @@ def init_page():
     if 'assistant_opened' not in st.session_state:
         st.session_state['assistant_opened'] = False
     
-    if "conversations" not in st.session_state:
-        st.session_state.conversations = []
+    if 'conversation_fetch_flag' not in st.session_state:
+        st.session_state['conversation_fetch_flag'] = False
 
     if "user" not in st.session_state:
         st.session_state.user = None

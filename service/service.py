@@ -2,10 +2,9 @@ from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
 from data.embedding_handler import ChromaDBManager
 from utils import model_util as model
+from utils import groq_util_module as groq_model
 import os
 import sys
-import mimetypes
-import io
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -17,7 +16,8 @@ class Service:
         """
         self.mongodb = MongoDBHandler() 
         self.chroma_db_manager = ChromaDBManager()  
-        self.pipe = self.init_pipe_model()
+        #self.pipe = self.init_pipe_model()
+        # self.groq_model = self.initialize_chatbot()
         print('Service initialized')
 
     def set_course_id(self, course_id):
@@ -194,29 +194,8 @@ class Service:
             print(f"Error generating response: {e}")
             return f"Error generating response: {e}"
 
-    def update_model_chat_history(self, messages, role, content):
-        """Updates the chat history with the latest user and model messages."""
-        if not self.pipe:
-            print("Model not initialized.")
-            return "[Error: Model not initialized]"
-
-        try:
-            return model.update_chat_history(self.pipe, messages, role, content)
-        except Exception as e:
-            print(f"Error updating history: {e}")
-            return "[Error updating history]"
-
-    def display_chat(self, messages):
-        """Displays the chat conversation."""
-        if not messages:
-            print("Chat not available.")
-            return "[Error: No chat available]"
-
-        try:
-            return model.display_conversation(messages)
-        except Exception as e:
-            print(f"Error displaying conversation: {e}")
-            return "[Error displaying conversation]"
+    def get_model_conversation(self):
+        return groq_model.get_conversation()
         
 # # To load data for development purposes.
 #file_service = Service()
