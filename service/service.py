@@ -120,7 +120,7 @@ class Service:
         return self.mongodb.remove_course(self.course_id)
 
     def set_assistant_available(self, file_id, value):
-        self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=file_id, available=value)
+        self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=str(file_id), available=value)
         return self.mongodb.set_assistant_available(file_id, value)
 
     # 3. Vector Operations
@@ -131,11 +131,11 @@ class Service:
         """
         self.chroma_db_manager.store_vector(course_id, document_id, extracted_text)
 
-    def search_vector(self, query_text):
+    def search_vector(self, query_text, top_k = 3):
         """
         Searches for similar vectors in the FAISS vector store based on the query vector.
         """
-        return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text)
+        return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text, k = top_k)
 
     def remove_vector(self, file_id):
         self.chroma_db_manager.remove_vector(course_id=self.course_id, document_id=file_id)
@@ -145,7 +145,7 @@ class Service:
         """
         Creates a prompt by combining the user's chat history and the current question.
         """
-        chunks = self.search_vector(input)
+        chunks = self.search_vector(input, 5)
         messages.append({"role": "system", "content": "Use below information to answer the question. " + str(chunks)})
         return messages
 
@@ -194,8 +194,8 @@ class Service:
             print(f"Error generating response: {e}")
             return f"Error generating response: {e}"
 
-    def get_model_conversation(self):
-        return groq_model.get_conversation()
+    def get_model_conversation(self, course_name):
+        return groq_model.GroqConversationManager(course_name)
         
 # # To load data for development purposes.
 #file_service = Service()

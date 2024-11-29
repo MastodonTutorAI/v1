@@ -27,6 +27,7 @@ class ChromaDBManager:
                     self.course_db_map[course_dir] = chroma_instance
                 except Exception as e:
                     raise RuntimeError(e) 
+        print(self.course_db_map)
 
     def create_course_db(self, course_id):
         """Create a Chroma database for a new course."""
@@ -73,6 +74,7 @@ class ChromaDBManager:
             course_db = self.get_course_db(course_id)
             chunks, metadata = self.get_chunks(extracted_text, document_id)
             self.create_embeddings(chunks, metadata, course_db)
+            print("Embeddings are created successfully.")
         except Exception as e:
             raise RuntimeError(e)
         

@@ -1,7 +1,6 @@
 import streamlit as st
 from page.Admin.content import show_content
-# from page.Admin.assistant import show_assistant
-from page.Admin.assistant_new import show_assistant
+from page.Admin.assistant import show_assistant
 
 admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant", icon=":material/chat:")
 
