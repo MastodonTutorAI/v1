@@ -120,7 +120,7 @@ class Service:
         return self.mongodb.remove_course(self.course_id)
     
     def set_assistant_available(self, file_id, value):
-        self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=file_id, available=value)
+        self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=str(file_id), available=value)
         return self.mongodb.set_assistant_available(file_id, value)
     
     # 3. Vector Operations
