@@ -10,12 +10,12 @@ st.set_page_config(
 )
 
 admin_dashboard = st.Page("page/Admin/dashboard.py", title="Dashboard", icon=":material/dashboard:", default=True)
+student_dashboard = st.Page("page/Student/dashboard.py", title="Courses", icon=":material/menu_book:", default=True)
 admin_reports = st.Page("page/Admin/reports.py", title="Report", icon=":material/lab_profile:")
 admin_contents = st.Page("page/Admin/content.py", title="Content", icon=":material/file_copy:")
 logout = st.Page("page/logout.py", title="Log out", icon=":material/logout:")
 login = st.Page("page/login.py", title="LogIn", icon=":material/login:")
 admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant Settings", icon=":material/chat:")
-student_assistant = st.Page("page/Student/assistant.py", title="Assistant", icon=":material/chat:")
 quiz = st.Page("page/Student/quiz.py", title="Quiz", icon=":material/quiz:")
 
 def main():
@@ -36,7 +36,8 @@ def main():
             # Student Pages
             pg_student = st.navigation(
                 {
-                    "Assistant": [student_assistant, quiz],
+                    "Dashboard": [student_dashboard],
+                    "Quiz": [quiz],
                     "Settings": [logout]
                 },
                 position='sidebar'

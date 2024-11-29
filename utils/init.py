@@ -7,11 +7,23 @@ def init_page():
             st.session_state.service = service.Service()
             st.session_state.service_initialized = True
 
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
     if "selected_course" not in st.session_state:
         st.session_state.selected_course = None
 
     if "selected_course_id" not in st.session_state:
         st.session_state.selected_course_id = None
+
+    if "selected_conversation" not in st.session_state:
+        st.session_state.selected_conversation = None
+
+    if "conversation_titles" not in st.session_state:
+        st.session_state.conversation_titles = []
+
+    if "conversations" not in st.session_state:
+        st.session_state.conversations = []
 
     # Initialize session state for login status if not already set
     if "isLogined" not in st.session_state:
