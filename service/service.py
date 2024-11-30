@@ -2,7 +2,6 @@ from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
 from data.embedding_handler import ChromaDBManager
 # from utils import model_util as model
-from utils import groq_util_module as groq_model
 import os
 import sys
 
@@ -80,7 +79,7 @@ class Service:
 
     def get_student_courses(self, student_id):
         return self.mongodb.get_student_courses(student_id)
-
+    
     def delete_file(self, file_id):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
@@ -117,27 +116,30 @@ class Service:
         Removes course and metadata from MongoDB.
         """
         return self.mongodb.remove_course(self.course_id)
-
+    
     def set_assistant_available(self, file_id, value):
         self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=str(file_id), available=value)
         return self.mongodb.set_assistant_available(file_id, value)
-
+    
     # 3. Vector Operations
     # SHREYAS
     def store_vector(self, course_id, document_id, extracted_text):
         """
         Stores a vector in the chroma vector store with associated metadata.
         """
-        self.chroma_db_manager.store_vector(course_id, document_id, extracted_text)
+        self.chroma_db_manager.store_vector(course_id, str(document_id), extracted_text)
 
     def search_vector(self, query_text, top_k = 3):
         """
-        Searches for similar vectors in the FAISS vector store based on the query vector.
+        Searches for similar vectors in the ChromaDb  store based on the query text.
         """
         return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text, k = top_k)
 
     def remove_vector(self, file_id):
-        self.chroma_db_manager.remove_vector(course_id=self.course_id, document_id=str(file_id))
+        """
+        Removes a vector from the ChromaDb vector store.
+        """
+        self.chroma_db_manager.remove_vector(self.course_id, file_id)
 
     # 5. Create prompt using search_vector
     # def create_prompt(self, messages, input):

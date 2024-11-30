@@ -73,57 +73,35 @@ class ChromaDBManager:
             course_db = self.get_course_db(course_id)
             chunks, metadata = self.get_chunks(extracted_text, document_id)
             self.create_embeddings(chunks, metadata, course_db)
-            print("Embeddings are created successfully.")
         except Exception as e:
             raise RuntimeError(e)
         
     def change_availability(self, course_id, document_id, available):
-        """
-        Change the availability of a document in the Chroma database using langchain_chroma.
-        
-        Args:
-            course_id (str): The ID of the course
-            document_id (str): The ID of the document to update
-            available (bool): The new availability status
-        """
+        """Change the availability of a document in the Chroma database."""
         try:
             course_db = self.get_course_db(course_id)
-            # Get all entries matching the document_id
             results = course_db.get(where={"document_id": document_id})
-            
+
             if not results or not results['ids']:
                 print(f"Document ID {document_id} not found in Chroma DB for course ID {course_id}.")
                 return
             
-            # Delete existing entries
-            course_db.delete(ids=results['ids'])
-            
-            # Recreate entries with updated metadata
-            texts = results['documents']
-            embeddings = results['embeddings']
-            updated_metadata = [{
-                "available": available,
-                "document_id": document_id
-            } for _ in texts]
-            
-            # Add texts back with updated metadata
-            course_db.add_texts(
-                texts=texts,
-                metadatas=updated_metadata,
-                embeddings=embeddings
-            )
-            
-            print(f"Availability of document ID {document_id} changed successfully.")
+            updated_metadata = [{"available": available, **metadata} for metadata in results['metadatas']] 
+
+            ids_to_delete = results['ids']
+            course_db.delete(ids=ids_to_delete)
+
+            course_db.add_texts(texts=results['documents'], metadatas=updated_metadata, embeddings=results['embeddings'], ids=ids_to_delete)
+            print(f"Availability of document ID Changed Successfully: {document_id}")
         except Exception as e:
             raise RuntimeError(f"Error changing availability: {e}")
 
-    def search_vector(self, course_id, query_text, k=3, filters={"available": True}):
+    def search_vector(self, course_id, query_text, k=3,filters={"available": True}):
         """Search for similar vectors in the Chroma database based on the query text."""
         try:
             query_text = str(query_text)
             course_db = self.get_course_db(course_id)
-            results = course_db.similarity_search(query_text, k, filter=filters)
-            return [result.page_content.split('\n') for result in results]
+            return course_db.similarity_search(query_text, k,filter=filters)
         except Exception as e:
             raise RuntimeError(e)
     
@@ -157,12 +135,12 @@ class ChromaDBManager:
 # db = ChromaDBManager()
 # extracted_text = "The quick brown fox jumps over the lazy dog."
 # #db.create_course_db(2)
-# # db.store_vector(2, 1, extracted_text)
-# # db.change_availability(str('ACS5800'), str('674a4e6a19b1cbbf1fc78b53'), True)
-# result = db.search_vector(str('ACS5800'), "sniffing", k=10,filters={"available": True})
+# db.store_vector(2, 1, extracted_text)
+# db.change_availability(2, 1, False)
+# result = db.search_vector(2, "quick", k=3,filters={"available": True})
 # for i, item in enumerate(result, start=1):
 #      print(f"Result {i}:")
 #      print(f"Document ID: {item.metadata.get('document_id')}")
 #      print(f"Available: {item.metadata.get('available')}")
 #      print(f"Content Snippet:\n{item.page_content}\n")
-# # db.remove_vector(2, 1)
+# #db.remove_vector(2, 1)

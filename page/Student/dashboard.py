@@ -6,15 +6,6 @@ admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant", icon=":m
 service = st.session_state.service
 courses = st.session_state.courses
    
-def get_conversation():
-    if st.session_state['conversation_fetch_flag'] == True:
-        #Get Conversations
-        with st.spinner("Loading..."):
-            st.session_state.conversations = list(service.get_conversation(str(st.session_state.user['_id'])))
-        for conversation in st.session_state.conversations:
-            conversation['status'] = 'Updated'
-        st.session_state['conversation_fetch_flag'] = False
-
 def get_courses():
     with st.spinner("Fetching courses..."):
         global courses
@@ -41,7 +32,6 @@ def course_row(course):
         # Button to view assistant
         if cols[0].button("View Assistant", key=f"assistant_details_{course['course_id']}"):
             st.session_state['assistant_opened'] = True
-            st.session_state['conversation_fetch_flag'] = True
             st.session_state['selected_course'] = course
             service.set_course_id(course['course_id'])
             st.rerun()
@@ -82,10 +72,8 @@ def dashboard():
         if st.session_state['assistant_opened'] == True:
             st.divider()
             st.subheader("**Assistant For "+ st.session_state['selected_course']['course_name'] + "**")
-            st.caption("🚀 AI assistant of " + st.session_state['selected_course']['professor_name'])
-            course_name = st.session_state['selected_course']['course_name']
-            st.session_state.conversation_manager = service.get_model_conversation(course_name)
-            get_conversation()
+            with st.spinner("Loading..."):
+                st.session_state.conversations = list(service.get_conversation(str(st.session_state.user['_id'])))
             show_assistant()
 
 dashboard()

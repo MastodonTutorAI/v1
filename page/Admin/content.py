@@ -111,6 +111,7 @@ def show_table():
                     
                     if st.button(button_label, key="availability_button_" + file_name):
                         value = file_data['available'] = not file_data['available']
+                        print(value)
                         file_id = file_data['file_id']
                         file_name = file_data['file_name']
                         if service.set_assistant_available(file_id, value):
