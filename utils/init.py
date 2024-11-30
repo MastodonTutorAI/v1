@@ -22,6 +22,9 @@ def init_page():
     if "conversation_titles" not in st.session_state:
         st.session_state.conversation_titles = []
 
+    if 'conversation_manager' not in st.session_state:
+        st.session_state.conversation_manager = None
+
     if "conversations" not in st.session_state:
         st.session_state.conversations = []
 

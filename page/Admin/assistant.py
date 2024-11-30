@@ -89,10 +89,6 @@ def show_conversation():
 
 def show_assistant():
     service = st.session_state.service
-    
-    if 'conversation_manager' not in st.session_state:
-        course_name = st.session_state['selected_course']['course_name']
-        st.session_state.conversation_manager = service.get_model_conversation(course_name)
 
     if st.sidebar.button('New Chat', type='primary'):
         st.session_state.selected_conversation = None
@@ -112,7 +108,6 @@ def show_assistant():
                     selected_conv = None
                     if st.session_state.selected_conversation is not None:
                         selected_conv = st.session_state.conversations[st.session_state.selected_conversation]
-                        print(selected_conv)
                     
                     response = st.session_state.conversation_manager.get_response(
                         user_input=input,

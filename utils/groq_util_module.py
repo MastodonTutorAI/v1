@@ -37,14 +37,22 @@ class GroqConversationManager:
                 if user_msg["role"] == "user" and assistant_msg["role"] == "assistant":
                     self.conversation_chain.memory.chat_memory.add_user_message(user_msg["content"])
                     self.conversation_chain.memory.chat_memory.add_ai_message(assistant_msg["content"])
-    
+
     def get_response(self, user_input, context, selected_conversation=None):
         if selected_conversation is not None:
             conversation_messages = selected_conversation.get("conversation", [])
             self.load_conversation_history(conversation_messages)
         
-        response = self.conversation_chain.predict(human_input=user_input)
+        # Create prompt using context and user input
+        prompt = self.create_prompt(context, user_input)
+        print(prompt)
+        response = self.conversation_chain.predict(human_input=prompt)
         return response
+
+    def create_prompt(self, context, user_input):
+        """Create a prompt by combining context and user input."""
+        prompt = f"CONTEXT\n\n {context}\n\n Question\n\n {user_input}"
+        return prompt
 
     def clear_history(self):
         self.initialize_conversation_chain()
@@ -104,18 +112,18 @@ class GroqConversationManager:
         )
         return conversation
 
-    def generate_response(self, conversation, user_question):
-        """Generate a response based on user input."""
-        response = conversation.predict(human_input=user_question)
-        return response
+    # def generate_response(self, conversation, user_question):
+    #     """Generate a response based on user input."""
+    #     response = conversation.predict(human_input=user_question)
+    #     return response
 
-    def update_chat_history(self, messages, role, content):
-        """Update chat history with new content."""
-        messages.append({"role": role, "content": content})
-        return messages
+    # def update_chat_history(self, messages, role, content):
+    #     """Update chat history with new content."""
+    #     messages.append({"role": role, "content": content})
+    #     return messages
 
-    def display_conversation(self, messages):
-        """Display the conversation in a user-friendly format."""
-        for message in messages:
-            role = "🧑‍💻 User" if message["role"] == "user" else "🤖 Personal Bot"
-            print(f"{role}: {message['content']}\n")
+    # def display_conversation(self, messages):
+    #     """Display the conversation in a user-friendly format."""
+    #     for message in messages:
+    #         role = "🧑‍💻 User" if message["role"] == "user" else "🤖 Personal Bot"
+    #         print(f"{role}: {message['content']}\n")
