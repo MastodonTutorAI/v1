@@ -1,11 +1,10 @@
 from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
 from data.embedding_handler import ChromaDBManager
-from utils import model_util as model
+# from utils import model_util as model
+from utils import groq_util_module as groq_model
 import os
 import sys
-import mimetypes
-import io
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -17,7 +16,8 @@ class Service:
         """
         self.mongodb = MongoDBHandler() 
         self.chroma_db_manager = ChromaDBManager()  
-        self.pipe = self.init_pipe_model()
+        #self.pipe = self.init_pipe_model()
+        # self.groq_model = self.initialize_chatbot()
         print('Service initialized')
 
     def set_course_id(self, course_id):
@@ -37,7 +37,7 @@ class Service:
             
             # Save extracted text to MongoDB
             file_id = self.save_file_db(file_content, extracted_text, course_id)
-
+            
             # After saving to DB, create embeddings in FAISS
             self.store_vector(course_id=course_id, document_id=str(file_id), extracted_text=extracted_text)
         except Exception as e:
@@ -71,6 +71,7 @@ class Service:
         course_id = self.mongodb.create_course(course_id, course_name, professor_name, description, professor_id)
         if course_id:
             self.chroma_db_manager.create_course_db(course_id=course_id)
+            self.chroma_db_manager._initialize_course_db_map()
         return course_id
 
     def get_courses(self, professor_id):
@@ -81,7 +82,7 @@ class Service:
 
     def get_student_courses(self, student_id):
         return self.mongodb.get_student_courses(student_id)
-    
+
     def delete_file(self, file_id):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
@@ -118,111 +119,89 @@ class Service:
         Removes course and metadata from MongoDB.
         """
         return self.mongodb.remove_course(self.course_id)
-    
+
     def set_assistant_available(self, file_id, value):
         self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=str(file_id), available=value)
         return self.mongodb.set_assistant_available(file_id, value)
-    
+
     # 3. Vector Operations
     # SHREYAS
     def store_vector(self, course_id, document_id, extracted_text):
         """
         Stores a vector in the chroma vector store with associated metadata.
         """
-        self.chroma_db_manager.store_vector(course_id, str(document_id), extracted_text)
+        self.chroma_db_manager.store_vector(course_id, document_id, extracted_text)
 
-    def search_vector(self, query_text):
+    def search_vector(self, query_text, top_k = 3):
         """
-        Searches for similar vectors in the ChromaDb  store based on the query text.
+        Searches for similar vectors in the FAISS vector store based on the query vector.
         """
-        return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text)
+        return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text, k = top_k)
 
     def remove_vector(self, file_id):
-        """
-        Removes a vector from the ChromaDb vector store.
-        """
-        self.chroma_db_manager.remove_vector(self.course_id, file_id)
+        self.chroma_db_manager.remove_vector(course_id=self.course_id, document_id=str(file_id))
 
-    # 5. Create prompt using search_vector
-    def create_prompt(self, messages, input):
-        """
-        Creates a prompt by combining the user's chat history and the current question.
-        """
-        chunks = self.search_vector(input)
-        messages.append({"role": "system", "content": "Use below information to answer the question. " + str(chunks)})
-        return messages
+    # # 5. Create prompt using search_vector
+    # def create_prompt(self, messages, input):
+    #     """
+    #     Creates a prompt by combining the user's chat history and the current question.
+    #     """
+    #     chunks = self.search_vector(input, 5)
+    #     messages.append({"role": "system", "content": "Use below information to answer the question. " + str(chunks)})
+    #     return messages
 
-    # 6. Set Default Prompt
-    def get_system_prompt(self):
-        """
-        Sets a system prompt
-        """
-        system_prompt = (
-            "You will be acting as a professor's assistant for the graduate-level course named 'Cryptography and Network Security.' "
-            "Your primary responsibility is to answer students' questions about course content with clarity, as if the professor were addressing the question directly in a classroom setting."
+    # # 6. Set Default Prompt
+    # def get_system_prompt(self):
+    #     """
+    #     Sets a system prompt
+    #     """
+    #     system_prompt = (
+    #         "You will be acting as a professor's assistant for the graduate-level course named 'Cryptography and Network Security.' "
+    #         "Your primary responsibility is to answer students' questions about course content with clarity, as if the professor were addressing the question directly in a classroom setting."
 
-            "Here are the critical rules for your interaction:"
-            "<rules>"
-            "1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear."
-            "2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant."
-            "3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to cryptography and network security."
-            "4. Break down complex cryptography and network security topics into simple, relatable explanations. Use examples, analogies, and step-by-step guidance to clarify difficult concepts."
-            "5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material."
-            "6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way."
-            "</rules>"
+    #         "Here are the critical rules for your interaction:"
+    #         "<rules>"
+    #         "1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear."
+    #         "2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant."
+    #         "3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to cryptography and network security."
+    #         "4. Break down complex cryptography and network security topics into simple, relatable explanations. Use examples, analogies, and step-by-step guidance to clarify difficult concepts."
+    #         "5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material."
+    #         "6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way."
+    #         "</rules>"
 
-            "Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student, fostering understanding in cryptography and network security topics."
-        )
+    #         "Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student, fostering understanding in cryptography and network security topics."
+    #     )
 
-        return system_prompt
+    #     return system_prompt
 
-    # 7. Call Model API for Response
-    # AJINKYA
-    def init_pipe_model(self):
-        """Initializes the chatbot pipeline model."""
-        try:
-            return model.initialize_chatbot()
-        except Exception as e:
-            print(f"Error loading model: {e}")
+    # # 7. Call Model API for Response
+    # # AJINKYA
+    # def init_pipe_model(self):
+    #     """Initializes the chatbot pipeline model."""
+    #     try:
+    #         return model.initialize_chatbot()
+    #     except Exception as e:
+    #         print(f"Error loading model: {e}")
 
-    def get_response_model(self, messages, max_new_tokens=256):
-        """Generates a chatbot response using the pipeline."""
-        if not self.pipe:
-            print("Model not initialized.")
-            return "[Error: Model not initialized]"
-        try:
-            # messages = self.create_prompt(messages, messages[-1]["content"])
-            return model.generate_response(self.pipe, messages, max_new_tokens)
-        except Exception as e:
-            print(f"Error generating response: {e}")
-            return f"Error generating response: {e}"
+    # def get_response_model(self, messages, max_new_tokens=256):
+    #     """Generates a chatbot response using the pipeline."""
+    #     if not self.pipe:
+    #         print("Model not initialized.")
+    #         return "[Error: Model not initialized]"
+    #     try:
+    #         messages = self.create_prompt(messages, messages[-1]["content"])
+    #         return model.generate_response(self.pipe, messages, max_new_tokens)
+    #     except Exception as e:
+    #         print(f"Error generating response: {e}")
+    #         return f"Error generating response: {e}"
 
-    def update_model_chat_history(self, messages, role, content):
-        """Updates the chat history with the latest user and model messages."""
-        if not self.pipe:
-            print("Model not initialized.")
-            return "[Error: Model not initialized]"
-
-        try:
-            return model.update_chat_history(self.pipe, messages, role, content)
-        except Exception as e:
-            print(f"Error updating history: {e}")
-            return "[Error updating history]"
-
-    def display_chat(self, messages):
-        """Displays the chat conversation."""
-        if not messages:
-            print("Chat not available.")
-            return "[Error: No chat available]"
-
-        try:
-            return model.display_conversation(messages)
-        except Exception as e:
-            print(f"Error displaying conversation: {e}")
-            return "[Error displaying conversation]"
+    def get_model_conversation(self, course_name):
+        return groq_model.GroqConversationManager(course_name)
         
 # # To load data for development purposes.
-# file_service = Service()
+#file_service = Service()
+# password = file_service.mongodb.hash_password('student')
+# print(password)
 # # file_service.initialize_collections()
 # response = file_service.get_response_model(["Hello!"], max_new_tokens=256)
 # print(response)

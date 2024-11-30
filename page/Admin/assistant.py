@@ -4,7 +4,6 @@ from datetime import datetime
 service = st.session_state.service
 
 def get_conversation_title(first_message):
-    """Generate a title from the first user message"""
     max_title_length = 30
     title = first_message[:max_title_length]
     if len(first_message) > max_title_length:
@@ -32,34 +31,35 @@ def save_conversation():
             if (st.session_state.selected_conversation is not None and 
                 str(st.session_state.selected_conversation).strip()):
                 index = int(st.session_state.selected_conversation)
+                if st.session_state.conversations[index]['status'] != 'New':
+                    st.session_state.conversations[index]['status'] = 'Updated'
                 st.session_state.conversations[index]['conversation'] = st.session_state.messages
-                st.session_state.conversations[index]['status'] = 'Updated'
             else:
                 first_user_message = next(msg["content"] for msg in st.session_state.messages if msg["role"] == "user")
                 title = get_conversation_title(first_user_message)
-                st.session_state.conversations.append({
+                new_conversation = {
                     "title": title,
                     "course_id": service.course_id,
                     "user_id": str(st.session_state.user['_id']),
                     "conversation": st.session_state.messages,
                     "status": 'New'
-                })
+                }
+                st.session_state.conversations.append(new_conversation)
                 st.session_state.selected_conversation = len(st.session_state.conversations) - 1
-        except (ValueError, TypeError):
-            # If there's any conversion error, treat it as a new conversation
+        except (ValueError, TypeError) as e:
             first_user_message = next(msg["content"] for msg in st.session_state.messages if msg["role"] == "user")
             title = get_conversation_title(first_user_message)
-            st.session_state.conversations.append({
+            new_conversation = {
                 "title": title,
                 "course_id": service.course_id,
                 "user_id": str(st.session_state.user['_id']),
                 "conversation": st.session_state.messages,
                 "status": 'New'
-            })
+            }
+            st.session_state.conversations.append(new_conversation)
             st.session_state.selected_conversation = len(st.session_state.conversations) - 1
 
 def show_conversation():
-    # Display past conversations in sidebar
     if st.session_state.conversations:
         st.sidebar.markdown("### Previous Chats")
         for i, conversation in enumerate(st.session_state.conversations):
@@ -88,23 +88,15 @@ def show_conversation():
                     st.markdown(message["content"])
 
 def show_assistant():
-    # New Chat button
+    service = st.session_state.service
+
     if st.sidebar.button('New Chat', type='primary'):
         st.session_state.selected_conversation = None
         st.session_state.messages = [{"role": "assistant", "content": "Hello! How can I assist you today?"}]
-        st.session_state.is_system_prompt = False
+        st.session_state.conversation_manager.clear_history()
     
-    # Initialize system prompt if needed
-    # if not st.session_state.is_system_prompt:
-    #     st.session_state.is_system_prompt = True
-    #     st.session_state.messages = [
-    #         {"role": "system", "content": service.get_system_prompt()},
-    #         {"role": "assistant", "content": "Hello! How can I assist you today?"}
-    #     ]
-
     show_conversation()
 
-    # Handle user input
     if input := st.chat_input("What's on your mind?"):
         st.session_state.messages.append({"role": "user", "content": input})
         with st.chat_message("user"):
@@ -113,10 +105,16 @@ def show_assistant():
         if st.session_state.messages[-1]["role"] != "assistant":
             with st.chat_message("assistant"):
                 with st.spinner("Loading..."):
-                    # Get response from model
-                    full_response = service.get_response_model(st.session_state.messages)
-                    latest_response = full_response[-1]["content"]
-                    st.write(latest_response)
-            st.session_state.messages.append({"role": "assistant", "content": latest_response})
+                    selected_conv = None
+                    if st.session_state.selected_conversation is not None:
+                        selected_conv = st.session_state.conversations[st.session_state.selected_conversation]
+                    
+                    response = st.session_state.conversation_manager.get_response(
+                        user_input=input,
+                        context=service.search_vector(input, 5),
+                        selected_conversation=selected_conv
+                    )
+                    st.write(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
         save_conversation()
