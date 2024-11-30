@@ -1,33 +1,16 @@
 import streamlit as st
-from page.Admin.content import show_content
 from page.Admin.assistant import show_assistant
 
 admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant", icon=":material/chat:")
 
 service = st.session_state.service
 courses = st.session_state.courses
-
-@st.dialog("Create New Assistant")
-def create_new_assistant():
-    st.caption("All are required fields")
-    course_name = st.text_input("Course Name", "", placeholder="e.g. Deep Learning")
-    course_id = st.text_input("Course Id", placeholder="e.g. CS5900")
-    professor_name = st.text_input("Professor Name", "")
-    description = st.text_area("Description","")
-    if st.button("Submit"):
-        if course_name == "" or course_id == "" or professor_name == "" or description == "":
-            st.error("Please fill all the fields!")
-            return
-        with st.spinner("Creating new assistant..."):
-            course_id = service.create_course(course_id, course_name, professor_name, description, st.session_state.user['_id'])
-            st.success("Assistant created successfully!")
-            get_courses()
-            st.rerun()
-
+   
 def get_courses():
     with st.spinner("Fetching courses..."):
         global courses
-        courses_cursor = service.get_courses(st.session_state.user['_id'])
+        user_id = str(st.session_state.user['_id'])
+        courses_cursor = service.get_student_courses(user_id)
         courses = {}
         for course in courses_cursor:
             courses[course['course_id']] = course 
@@ -44,30 +27,15 @@ def course_row(course):
         cols[0].success("**Status:** Active", icon="✅")
 
         st.divider()
-        cols = st.columns([1, 1, 1, 6])
-
-        # Button to view content details
-        if cols[0].button("View Details", key=f"content_details_{course['course_id']}"):
-            print("View content details")
-            st.session_state['content_opened'] = True
-            st.session_state['selected_course'] = course
-            service.set_course_id(course['course_id'])
-            st.rerun()
+        cols = st.columns(1)
 
         # Button to view assistant
-        if cols[1].button("View Assistant", key=f"assistant_details_{course['course_id']}"):
+        if cols[0].button("View Assistant", key=f"assistant_details_{course['course_id']}"):
             st.session_state['assistant_opened'] = True
             st.session_state['selected_course'] = course
             service.set_course_id(course['course_id'])
             st.rerun()
         
-        if cols[2].button("Delete Course", key=f"delete_course_{course['course_id']}", type="primary"):
-            service.set_course_id(course['course_id'])
-            if service.remove_course():
-                st.toast('Course deleted successfully')
-                get_courses()
-                st.rerun()
-
 def show_courses():
     with st.container(border=False):
         for course_id, course in st.session_state.courses.items():  # Iterate over key-value pairs
@@ -76,9 +44,6 @@ def show_courses():
 def dashboard_main():
     st.title("Available Courses")
     st.divider() 
-    if st.button("Create New Course", key="create_course"):
-        create_new_assistant()
-
     show_courses()
 
 def reset_session_state():
@@ -101,17 +66,12 @@ def dashboard():
             if st.session_state['assistant_opened'] == True:
                 #Save Conversations
                 service.save_conversation(conversation_data=st.session_state.conversations)
-            
-            reset_session_state()
-            st.rerun()
-
-        if st.session_state['content_opened'] == True:
-            show_content()
+                reset_session_state()
+                st.rerun()
 
         if st.session_state['assistant_opened'] == True:
             st.divider()
             st.subheader("**Assistant For "+ st.session_state['selected_course']['course_name'] + "**")
-            st.caption("🚀 AI assistant of " + st.session_state['selected_course']['professor_name'])
             with st.spinner("Loading..."):
                 st.session_state.conversations = list(service.get_conversation(str(st.session_state.user['_id'])))
             show_assistant()

@@ -23,24 +23,6 @@ class Service:
     def set_course_id(self, course_id):
         self.course_id = course_id
 
-    #ALISHA
-    #Checking for file type
-    def get_file_type(self, file_name):
-        if not file_name:
-            raise ValueError("File name is missing; cannot determine file type")
-        
-        mime_type, _ = mimetypes.guess_type(file_name)
-
-        if not mime_type:
-            # Extract the file extension and raise an error if unknown
-            file_extension = os.path.splitext(file_name)[1]
-            if not file_extension:
-                raise ValueError("File extension is missing; cannot determine file type")
-            else:
-                raise ValueError(f"Unknown file type for extension '{file_extension}' in {file_name}")
-
-        return mime_type
-
     # 1. Embedding Creation
     def create_embedding(self, file_content, course_id):
         """
@@ -97,11 +79,15 @@ class Service:
         """
         return self.mongodb.get_courses(professor_id)
 
-    def delete_file_db(self, file, collection_name):
+    def get_student_courses(self, student_id):
+        return self.mongodb.get_student_courses(student_id)
+    
+    def delete_file(self, file_id):
         """
         Deletes the file and extracted text from the specified MongoDB collection.
         """
-        pass  # Logic to delete file and text in MongoDB goes here
+        self.remove_vector(file_id=file_id)
+        return self.mongodb.remove_file(file_id)
     
     def login(self, username, hashed_password):
         """
@@ -121,12 +107,22 @@ class Service:
         """
         return self.mongodb.remove_conversation(conversation_id)
 
-    def get_conversation(self, conversation_id):
+    def get_conversation(self, user_id):
         """
         Retrieves a conversation from MongoDB.
         """
-        return self.mongodb.get_conversation(conversation_id)
+        return self.mongodb.get_conversation(self.course_id, user_id)
 
+    def remove_course(self):
+        """
+        Removes course and metadata from MongoDB.
+        """
+        return self.mongodb.remove_course(self.course_id)
+    
+    def set_assistant_available(self, file_id, value):
+        self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=str(file_id), available=value)
+        return self.mongodb.set_assistant_available(file_id, value)
+    
     # 3. Vector Operations
     # SHREYAS
     def store_vector(self, course_id, document_id, extracted_text):
@@ -147,8 +143,6 @@ class Service:
         """
         self.chroma_db_manager.remove_vector(self.course_id, file_id)
 
-        # 4. MongoDB Operations for Conversations
-    
     # 5. Create prompt using search_vector
     def create_prompt(self, messages, input):
         """
