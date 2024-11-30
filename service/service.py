@@ -71,6 +71,7 @@ class Service:
         course_id = self.mongodb.create_course(course_id, course_name, professor_name, description, professor_id)
         if course_id:
             self.chroma_db_manager.create_course_db(course_id=course_id)
+            self.chroma_db_manager._initialize_course_db_map()
         return course_id
 
     def get_courses(self, professor_id):
@@ -138,7 +139,7 @@ class Service:
         return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text, k = top_k)
 
     def remove_vector(self, file_id):
-        self.chroma_db_manager.remove_vector(course_id=self.course_id, document_id=file_id)
+        self.chroma_db_manager.remove_vector(course_id=self.course_id, document_id=str(file_id))
 
     # 5. Create prompt using search_vector
     def create_prompt(self, messages, input):
