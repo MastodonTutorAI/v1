@@ -26,7 +26,7 @@ def main():
             pg_admin = st.navigation(
                 {
                     "Account": [admin_dashboard, admin_reports],
-                    "Assistant": [admin_assistant, quiz],
+                    "Quiz": [quiz],
                     "Settings": [logout]
                 },
                 position='sidebar'

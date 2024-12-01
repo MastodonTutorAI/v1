@@ -28,10 +28,13 @@ def create_new_assistant():
             st.error("Please fill all the fields!")
             return
         with st.spinner("Creating new assistant..."):
-            course_id = service.create_course(course_id, course_name, professor_name, description, st.session_state.user['_id'])
-            st.success("Assistant created successfully!")
-            get_courses()
-            st.rerun()
+            try:
+                course_id = service.create_course(course_id, course_name, professor_name, description, st.session_state.user['_id'])
+                st.success("Assistant created successfully!")
+                get_courses()
+                st.rerun()
+            except Exception as e:
+                st.error(e)
 
 def get_courses():
     with st.spinner("Fetching courses..."):
@@ -114,7 +117,7 @@ def dashboard():
             
             reset_session_state()
             st.rerun()
-
+        
         if st.session_state['content_opened'] == True:
             show_content()
 

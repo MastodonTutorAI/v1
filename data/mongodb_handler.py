@@ -108,6 +108,10 @@ class MongoDBHandler:
     
     def create_course(self, course_id, course_name, professor_name, description, professor_id):
         try:
+            course = self.db.courses.find_one({'course_id': course_id})
+            if course:
+                print("Course already exists.")
+                raise Exception(f"Course already exist by: {course['professor_name']}, please use different course Id.")
             course = {
                 'course_id': course_id,
                 'course_name': course_name,
