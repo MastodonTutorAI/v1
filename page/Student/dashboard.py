@@ -43,7 +43,7 @@ def course_row(course):
             st.session_state['assistant_opened'] = True
             st.session_state['conversation_fetch_flag'] = True
             st.session_state['selected_course'] = course
-            service.set_course_id(course['course_id'])
+            service.set_course_details(course)
             st.rerun()
         
 def show_courses():
@@ -83,8 +83,8 @@ def dashboard():
             st.divider()
             st.subheader("**Assistant For "+ st.session_state['selected_course']['course_name'] + "**")
             st.caption("🚀 AI assistant of " + st.session_state['selected_course']['professor_name'])
-            course_name = st.session_state['selected_course']['course_name']
-            st.session_state.conversation_manager = service.get_model_conversation(course_name)
+
+            st.session_state.conversation_manager = service.get_model_conversation()
             get_conversation()
             show_assistant()
 

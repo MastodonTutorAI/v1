@@ -111,7 +111,7 @@ def show_assistant():
                     
                     response = st.session_state.conversation_manager.get_response(
                         user_input=input,
-                        context=service.search_vector(input, 5),
+                        context=service.search_vector(input, 10),
                         selected_conversation=selected_conv
                     )
                     st.write(response)

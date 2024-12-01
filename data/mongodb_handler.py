@@ -113,7 +113,8 @@ class MongoDBHandler:
                 'course_name': course_name,
                 'professor_name': professor_name,
                 'description': description,
-                'professor_id': professor_id
+                'professor_id': professor_id,
+                'course_summary': ''
             }
             self.db.courses.insert_one(course)
             print("Course created successfully.")
@@ -121,6 +122,19 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error creating course: {e}")
     
+    def set_course_summary(self, course_id, course_summary):
+        try:
+            self.db.courses.update_one(
+                {'course_id': course_id},
+                {'$set': {'course_summary': course_summary}}
+            )
+
+            print("Course summary updated successfully.")
+            return True
+        except Exception as e:
+            print(f"Error creating course: {e}")
+            return False
+
     def create_professor_course(self, professor_id, course_id):
         try:
             professor_course = {
