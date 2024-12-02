@@ -8,15 +8,16 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+
 class Service:
 
     def __init__(self):
         """
         Initialize the Service class with MongoDB client and FAISS index for vector storage.
         """
-        self.mongodb = MongoDBHandler() 
-        self.chroma_db_manager = ChromaDBManager()  
-        #self.pipe = self.init_pipe_model()
+        self.mongodb = MongoDBHandler()
+        self.chroma_db_manager = ChromaDBManager()
+        # self.pipe = self.init_pipe_model()
         # self.groq_model = self.initialize_chatbot()
         print('Service initialized')
 
@@ -31,19 +32,25 @@ class Service:
         Then, embeddings are created and stored in FAISS.
         """
         try:
-            extracted_text = extract_text_and_images(file_content.type, file_content)
+            # Should print <class 'streamlit.runtime.uploaded_file_manager.UploadedFile'>
+            print(f"File type: {type(file_content)}")
+            print(f"File name: {file_content.name}")
+            print(f"File content type: {file_content.type}")
+            extracted_text = extract_text_and_images(file_content)
             if not extracted_text:
-               raise ValueError("Failed to extract text from the given file.")
-            
+                raise ValueError("Failed to extract text from the given file.")
+
             # Save extracted text to MongoDB
-            file_id = self.save_file_db(file_content, extracted_text, course_id)
-            
+            file_id = self.save_file_db(
+                file_content, extracted_text, course_id)
+
             # After saving to DB, create embeddings in FAISS
-            self.store_vector(course_id=course_id, document_id=str(file_id), extracted_text=extracted_text)
+            self.store_vector(course_id=course_id, document_id=str(
+                file_id), extracted_text=extracted_text)
         except Exception as e:
             print(f"Error processing file: {e}")
             raise RuntimeError(f"Failed to process file: {e}")
-  
+
     # 2. Save to MongoDB (Abstract Layer)
     # DEEP
     def initialize_collections(self):
@@ -63,12 +70,13 @@ class Service:
         Retrieves the file and extracted text from the specified MongoDB collection.
         """
         return self.mongodb.get_files(course_id)
-    
+
     def create_course(self, course_id, course_name, professor_name, description, professor_id):
         """
         Creates a new course in MongoDB.
         """
-        course_id = self.mongodb.create_course(course_id, course_name, professor_name, description, professor_id)
+        course_id = self.mongodb.create_course(
+            course_id, course_name, professor_name, description, professor_id)
         if course_id:
             self.chroma_db_manager.create_course_db(course_id=course_id)
             self.chroma_db_manager._initialize_course_db_map()
@@ -89,13 +97,13 @@ class Service:
         """
         self.remove_vector(file_id=file_id)
         return self.mongodb.remove_file(file_id)
-    
+
     def login(self, username, hashed_password):
         """
         Validates the user login credentials from MongoDB.
         """
         return self.mongodb.login(username, hashed_password)
-    
+
     def save_conversation(self, conversation_data):
         """
         Saves a conversation to MongoDB.
@@ -121,7 +129,8 @@ class Service:
         return self.mongodb.remove_course(self.course_id)
 
     def set_assistant_available(self, file_id, value):
-        self.chroma_db_manager.change_availability(course_id=self.course_id, document_id=str(file_id), available=value)
+        self.chroma_db_manager.change_availability(
+            course_id=self.course_id, document_id=str(file_id), available=value)
         return self.mongodb.set_assistant_available(file_id, value)
 
     # 3. Vector Operations
@@ -130,16 +139,18 @@ class Service:
         """
         Stores a vector in the chroma vector store with associated metadata.
         """
-        self.chroma_db_manager.store_vector(course_id, document_id, extracted_text)
+        self.chroma_db_manager.store_vector(
+            course_id, document_id, extracted_text)
 
-    def search_vector(self, query_text, top_k = 3):
+    def search_vector(self, query_text, top_k=3):
         """
         Searches for similar vectors in the FAISS vector store based on the query vector.
         """
-        return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text, k = top_k)
+        return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text, k=top_k)
 
     def remove_vector(self, file_id):
-        self.chroma_db_manager.remove_vector(course_id=self.course_id, document_id=str(file_id))
+        self.chroma_db_manager.remove_vector(
+            course_id=self.course_id, document_id=str(file_id))
 
     # # 5. Create prompt using search_vector
     # def create_prompt(self, messages, input):
@@ -197,9 +208,9 @@ class Service:
 
     def get_model_conversation(self, course_name):
         return groq_model.GroqConversationManager(course_name)
-        
+
 # # To load data for development purposes.
-#file_service = Service()
+# file_service = Service()
 # password = file_service.mongodb.hash_password('student')
 # print(password)
 # # file_service.initialize_collections()
