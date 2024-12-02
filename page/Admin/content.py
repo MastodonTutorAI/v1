@@ -155,6 +155,7 @@ def show_table():
                 file_name = file_data['file_name']
                 file_id = file_data['file_id']
                 file_status = file_data['status']
+                status_flag = True if file_status == 'Processing' or file_status == 'Failed' else False
 
                 col1, col2, col3, col4, col5 = st.columns([1.5, 0.5, 0.5, 0.5, 0.5])
 
@@ -165,7 +166,7 @@ def show_table():
                     "Preview", key="Preview" + str(file_id), disabled=True)
 
                 with col5:
-                    if st.button("Delete", key="Delete" + str(file_id)):
+                    if st.button("Delete", key="Delete" + str(file_id), disabled=status_flag):
                         file_id = file_data['file_id']
                         if service.delete_file(file_id):
                             st.session_state['uploaded_files'].remove(
@@ -183,9 +184,8 @@ def show_table():
                     else:
                         button_label = "Grant Access"
 
-                    if st.button(button_label, key="availability_button_" + str(file_id)):
+                    if st.button(button_label, key="availability_button_" + str(file_id), disabled=status_flag):
                         value = file_data['available'] = not file_data['available']
-                        print(value)
                         file_id = file_data['file_id']
                         file_name = file_data['file_name']
                         if service.set_assistant_available(file_id, value):
