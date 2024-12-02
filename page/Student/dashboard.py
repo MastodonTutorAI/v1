@@ -23,7 +23,7 @@ def get_courses():
         courses = {}
         for course in courses_cursor:
             courses[course['course_id']] = course 
-        st.session_state.courses = courses
+        st.session_state.courses = dict(courses)
 
 @st.fragment
 def course_row(course):
@@ -48,8 +48,12 @@ def course_row(course):
         
 def show_courses():
     with st.container(border=False):
-        for course_id, course in st.session_state.courses.items():  # Iterate over key-value pairs
-            course_row(course)
+        print(st.session_state.courses)
+        if st.session_state.courses:
+            for course_id, course in st.session_state.courses.items():  # Iterate over key-value pairs
+                course_row(course)
+        else:
+            st.write('No courses available')
 
 def dashboard_main():
     st.title("Available Courses")
@@ -66,8 +70,7 @@ def reset_session_state():
     st.session_state['selected_conversation'] = None
 
 def dashboard():
-    if st.session_state.courses == []:
-        get_courses()
+    get_courses()
 
     if st.session_state['content_opened'] == False and st.session_state['assistant_opened'] == False:
         dashboard_main()

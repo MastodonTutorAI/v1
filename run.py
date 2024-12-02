@@ -17,6 +17,7 @@ logout = st.Page("page/logout.py", title="Log out", icon=":material/logout:")
 login = st.Page("page/login.py", title="LogIn", icon=":material/login:")
 admin_assistant = st.Page("page/Admin/assistant.py", title="Assistant Settings", icon=":material/chat:")
 quiz = st.Page("page/Student/quiz.py", title="Quiz", icon=":material/quiz:")
+enrollemt = st.Page("page/Student/enrollment.py", title="Enrollment", icon=":material/library_books:")
 
 def main():
     init_page.init_page()
@@ -36,7 +37,7 @@ def main():
             # Student Pages
             pg_student = st.navigation(
                 {
-                    "Dashboard": [student_dashboard],
+                    "Dashboard": [student_dashboard, enrollemt],
                     "Quiz": [quiz],
                     "Settings": [logout]
                 },

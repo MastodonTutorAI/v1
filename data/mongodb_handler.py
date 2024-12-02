@@ -170,6 +170,27 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error creating professor course: {e}")
 
+    def create_student_course(self, student_id, course_id):
+        try:
+            student_course = self.db.student_courses.find_one({'student_id': student_id})
+            if student_course:
+                existing_course_ids = student_course['course_id'].split(',')
+                existing_course_ids.append(course_id)
+                self.db.student_courses.update_one(
+                    {'student_id': student_id},
+                    {'$set': {'course_id': ','.join(existing_course_ids)}}
+                )
+                print("Course ID appended to existing student record.")
+            else:
+                new_student_course = {
+                    'student_id': student_id,
+                    'course_id': course_id
+                }
+                self.db.student_courses.insert_one(new_student_course)
+                print("New student course record created successfully.")
+        except Exception as e:
+            raise Exception(f"Error creating student course: {e}")
+
     def get_courses(self, professor_id):
         try:
             courses = self.db.courses.find({'professor_id': professor_id})
@@ -178,6 +199,14 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error retrieving courses: {e}")
 
+    def get_all_courses(self):
+        try:
+            courses = self.db.courses.find()
+            print("Retrieved courses successfully.")
+            return courses
+        except Exception as e:
+            raise Exception(f"Error retrieving courses: {e}")
+        
     def get_student_courses(self, student_id):
         try:
             student_courses = self.db.student_courses.find({'student_id': student_id})

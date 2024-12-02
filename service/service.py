@@ -136,6 +136,9 @@ class Service:
         """
         return self.mongodb.get_courses(professor_id)
 
+    def get_all_courses(self):
+        return self.mongodb.get_all_courses()
+
     def get_student_courses(self, student_id):
         return self.mongodb.get_student_courses(student_id)
 
@@ -180,6 +183,9 @@ class Service:
         self.chroma_db_manager.change_availability(
             course_id=self.course_id, document_id=str(file_id), available=value)
         return self.mongodb.set_assistant_available(file_id, value)
+
+    def create_student_course(self, user_id, course_id):
+        self.mongodb.create_student_course(user_id, course_id)
 
     # 3. Vector Operations
     # SHREYAS

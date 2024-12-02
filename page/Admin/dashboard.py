@@ -40,7 +40,7 @@ def get_courses():
         courses = {}
         for course in courses_cursor:
             courses[course['course_id']] = course 
-        st.session_state.courses = courses
+        st.session_state.courses = dict(courses)
 
 @st.fragment
 def course_row(course):
@@ -101,8 +101,7 @@ def reset_session_state():
     st.session_state['selected_conversation'] = None
 
 def dashboard():
-    if st.session_state.courses == []:
-        get_courses()
+    get_courses()
 
     if st.session_state['content_opened'] == False and st.session_state['assistant_opened'] == False:
         dashboard_main()
