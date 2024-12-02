@@ -75,15 +75,15 @@ class Service:
             if not extracted_text:
                 raise ValueError("Failed to extract text from the given file.")
 
-            print("**Extracted Text**")
+            print("**Extracted Text: "+str(file_id)+"**")
             
             # After saving to DB, create embeddings in Chroma
             self.store_vector(course_id=self.course_id, document_id=str(file_id), extracted_text=extracted_text)
-            print("**Embeddings Created**")
+            print("**Embeddings Created: "+str(file_id)+"**")
             
             # Create summary
             self.summarizer.save_course_summary(self.course_id, extracted_text, self.course_summary)
-            print("**Summary Created**")
+            print("**Summary Created: "+str(file_id)+"**")
 
             # Save extracted text to MongoDB
             self.update_file_db(file_id, extracted_text, 'Completed')
