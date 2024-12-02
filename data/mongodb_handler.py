@@ -5,6 +5,7 @@ from bson.binary import Binary
 from dotenv import load_dotenv
 from bson.objectid import ObjectId
 import bcrypt
+from pymongo.errors import DuplicateKeyError
 
 load_dotenv()
 
@@ -53,22 +54,41 @@ class MongoDBHandler:
         self.create_course_material_metadata_collection()
         self.create_conversations_collection()
 
-    # function to save file and their extracted text to db
-    def save_file(self, file_content, extracted_text, course_id):
+    def update_file(self, file_id, contents):
         try:
-            file_id = self.fs.put(file_content, course_id=course_id)
+            status = contents['status']
+            extracted_text = contents['extracted_text']
+
+            self.db.course_material_metadata.update_one(
+                {'_id': file_id},
+                {'$set': {'status': status, 'extracted_text': extracted_text}}
+            )
+            print("File status updated successfully.")
+        except Exception as e:
+            # Because of threading just print error
+            print(f"Error creating course: {e}")
+
+    # function to save file and their extracted text to db
+    def save_file(self, file_content, course_id):
+        try:
+            # Remove the line that saves the file to GridFS
+            # file_id = self.fs.put(file_content, course_id=course_id)
             
             course_material_metadata = {
-                'file_id': file_id,
+                # Remove the file_id reference
+                # 'file_id': file_id,
                 'course_id': course_id,
                 'file_name': file_content.name,
                 'actual_file': Binary(file_content.getvalue()),
-                'extracted_text': extracted_text,
+                'extracted_text': '',
+                'status': 'Processing',
                 'available': False
             }
             self.db.course_material_metadata.insert_one(course_material_metadata)
             print("File uploaded successfully.")
-            return file_id
+            # Return the inserted document's ID instead of file_id
+            print(course_material_metadata['_id'])
+            return course_material_metadata['_id']
         except Exception as e:
             raise Exception(f"Error saving file: {e}")
     
@@ -108,12 +128,17 @@ class MongoDBHandler:
     
     def create_course(self, course_id, course_name, professor_name, description, professor_id):
         try:
+            course = self.db.courses.find_one({'course_id': course_id})
+            if course:
+                print("Course already exists.")
+                raise Exception(f"Course already exist by: {course['professor_name']}, please use different course Id.")
             course = {
                 'course_id': course_id,
                 'course_name': course_name,
                 'professor_name': professor_name,
                 'description': description,
-                'professor_id': professor_id
+                'professor_id': professor_id,
+                'course_summary': ''
             }
             self.db.courses.insert_one(course)
             print("Course created successfully.")
@@ -121,6 +146,19 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error creating course: {e}")
     
+    def set_course_summary(self, course_id, course_summary):
+        try:
+            self.db.courses.update_one(
+                {'course_id': course_id},
+                {'$set': {'course_summary': course_summary}}
+            )
+
+            print("Course summary updated successfully.")
+            return True
+        except Exception as e:
+            print(f"Error creating course: {e}")
+            return False
+
     def create_professor_course(self, professor_id, course_id):
         try:
             professor_course = {
@@ -132,6 +170,27 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error creating professor course: {e}")
 
+    def create_student_course(self, student_id, course_id):
+        try:
+            student_course = self.db.student_courses.find_one({'student_id': student_id})
+            if student_course:
+                existing_course_ids = student_course['course_id'].split(',')
+                existing_course_ids.append(course_id)
+                self.db.student_courses.update_one(
+                    {'student_id': student_id},
+                    {'$set': {'course_id': ','.join(existing_course_ids)}}
+                )
+                print("Course ID appended to existing student record.")
+            else:
+                new_student_course = {
+                    'student_id': student_id,
+                    'course_id': course_id
+                }
+                self.db.student_courses.insert_one(new_student_course)
+                print("New student course record created successfully.")
+        except Exception as e:
+            raise Exception(f"Error creating student course: {e}")
+
     def get_courses(self, professor_id):
         try:
             courses = self.db.courses.find({'professor_id': professor_id})
@@ -140,6 +199,14 @@ class MongoDBHandler:
         except Exception as e:
             raise Exception(f"Error retrieving courses: {e}")
 
+    def get_all_courses(self):
+        try:
+            courses = self.db.courses.find()
+            print("Retrieved courses successfully.")
+            return courses
+        except Exception as e:
+            raise Exception(f"Error retrieving courses: {e}")
+        
     def get_student_courses(self, student_id):
         try:
             student_courses = self.db.student_courses.find({'student_id': student_id})
@@ -159,13 +226,25 @@ class MongoDBHandler:
     def save_conversation(self, conversation_data):
         try:
             for conversation in conversation_data:
+                print("*****************************")
+                print(conversation)
                 # Remove 'status' before saving to the database
                 conversation_to_save = {key: value for key, value in conversation.items() if key != "status"}
 
+                if "conversation_id" not in conversation_to_save or not conversation_to_save.get("conversation_id"):
+                    conversation_to_save["conversation_id"] = str(ObjectId())
+
                 if conversation.get("status") == "New":
-                    # Insert new conversation
-                    conversation_id = self.db.conversations.insert_one(conversation_to_save).inserted_id
-                    print(f"New conversation inserted with ID: {conversation_id}")
+                    try:
+                        # Insert new conversation
+                        conversation_id = self.db.conversations.insert_one(conversation_to_save).inserted_id
+                        print(f"New conversation inserted with ID: {conversation_id}")
+                    except DuplicateKeyError:
+                        print("Duplicate key error. Updating instead.")
+                        self.db.conversations.update_one(
+                            {"conversation_id": conversation_to_save["conversation_id"]},
+                            {"$set": conversation_to_save}
+                        )
 
                 elif conversation.get("status") == "Updated":
                     # Update existing conversation based on conversation_id
@@ -224,7 +303,7 @@ class MongoDBHandler:
             # Delete files from GridFS
             files = self.db.course_material_metadata.find({'course_id': course_id})
             for file in files:
-                self.fs.delete(file['file_id'])
+                self.fs.delete(file['_id'])
             print("Deleted associated files from GridFS.")
 
             print("Course removed successfully.")
@@ -236,7 +315,7 @@ class MongoDBHandler:
         try:
             # Update the availability status for the given file_id
             result = self.db.course_material_metadata.update_one(
-                {'file_id': file_id},
+                {'_id': file_id},
                 {'$set': {'available': value}}
             )
             
@@ -252,7 +331,7 @@ class MongoDBHandler:
     def remove_file(self, file_id):
         try:
             # Find the file in the course_material_metadata collection
-            file = self.db.course_material_metadata.find_one({'file_id': file_id})
+            file = self.db.course_material_metadata.find_one({'_id': file_id})
             if not file:
                 print("File not found.")
                 return False
@@ -262,7 +341,7 @@ class MongoDBHandler:
             print("File deleted from GridFS.")
     
             # Remove the file metadata from the course_material_metadata collection
-            result = self.db.course_material_metadata.delete_one({'file_id': file_id})
+            result = self.db.course_material_metadata.delete_one({'_id': file_id})
             if result.deleted_count == 0:
                 print("File metadata not found.")
                 return False

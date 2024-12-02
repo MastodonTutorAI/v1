@@ -5,10 +5,11 @@ from streamlit_extras.add_vertical_space import add_vertical_space
 import io
 # import pdfplumber
 # from bson.binary import Binary
-import fitz
+# import fitz
+# from io import BytesIO
 
 service = st.session_state.service
-fields = ["File Name", "Available To Assistant", "Preview", "Action"]
+fields = ["File Name", "Available To Assistant", "Preview", 'RAG Status', "Action"]
 selected_course_id = None
 
 
@@ -22,7 +23,8 @@ def retrieve_files():
             st.session_state['uploaded_files'].append({
                 "file_name": file['file_name'],
                 "available": file['available'],
-                "file_id": file['file_id']
+                "file_id": file['_id'],
+                "status": file['status']
             })
 
 
@@ -73,6 +75,25 @@ def content_page_header():
 #                 st.error("Please upload a valid file.")
 #     show_table()
 # new code for multiple file upload below
+
+class StreamlitFileWrapper:
+    def __init__(self, uploaded_file):
+        self._file = uploaded_file
+        self.name = uploaded_file.name
+        self.type = uploaded_file.type
+        self.value = uploaded_file.read()  
+        self._file.seek(0)  
+
+    def read(self, size=-1):
+        """Read the file content."""
+        if size == -1:
+            return self.value
+        return self.value[:size]
+
+    def getvalue(self):
+        """Return the file content as bytes."""
+        return self.value
+    
 @st.fragment
 def show_content():
     global selected_course_id
@@ -102,9 +123,10 @@ def show_content():
             if uploaded_files:
                 with st.spinner('Processing...'):
                     for uploaded_file in uploaded_files:
+                        wrapped_file = StreamlitFileWrapper(uploaded_file)
+
                         # Process each file individually
-                        service.create_embedding(
-                            uploaded_file, selected_course_id)
+                        service.save_file(wrapped_file)
 
                     # Append file details to session state after processing is complete
                     st.session_state['uploader_key'] += 1
@@ -120,7 +142,7 @@ def show_table():
     container = st.container(border=True)
     with container:
         # Create table header
-        cols = st.columns([2, 0.5, 0.5, 0.5])
+        cols = st.columns([1.5, 0.5, 0.5, 0.5, 0.5])
         for col, field in zip(cols, fields):
             html_content = f"<span style='font-weight: bold; font-size: 18px;'>{field}</span>"
             col.markdown(html_content, unsafe_allow_html=True)
@@ -132,16 +154,18 @@ def show_table():
             for file_data in st.session_state['uploaded_files']:
                 file_name = file_data['file_name']
                 file_id = file_data['file_id']
+                file_status = file_data['status']
 
-                col1, col2, col3, col4 = st.columns([2, 0.5, 0.5, 0.5])
+                col1, col2, col3, col4, col5 = st.columns([1.5, 0.5, 0.5, 0.5, 0.5])
 
                 col1.write(file_name)
+                col4.write(file_status)
                 preview_placeholder = col3.empty()
                 show_preview = preview_placeholder.button(
-                    "Preview", key="Preview" + file_name, disabled=True)
+                    "Preview", key="Preview" + str(file_id), disabled=True)
 
-                with col4:
-                    if st.button("Delete", key="Delete" + file_name):
+                with col5:
+                    if st.button("Delete", key="Delete" + str(file_id)):
                         file_id = file_data['file_id']
                         if service.delete_file(file_id):
                             st.session_state['uploaded_files'].remove(
@@ -159,7 +183,7 @@ def show_table():
                     else:
                         button_label = "Grant Access"
 
-                    if st.button(button_label, key="availability_button_" + file_name):
+                    if st.button(button_label, key="availability_button_" + str(file_id)):
                         value = file_data['available'] = not file_data['available']
                         print(value)
                         file_id = file_data['file_id']

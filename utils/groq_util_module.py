@@ -18,8 +18,9 @@ model = os.getenv('MODEL_ID_GROQ')
 conversational_memory_length = 5
 
 class GroqConversationManager:
-    def __init__(self, course_name):
+    def __init__(self, course_name, course_summary):
         self.course_name = course_name
+        self.course_summary = course_summary
         self.conversation_chain = None
         self.initialize_conversation_chain()
     
@@ -76,7 +77,11 @@ class GroqConversationManager:
         5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material.
         6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way.
 
-        Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student, fostering understanding in {self.course_name} topics.
+        Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student.
+        
+        Below is course summary, what professor taught until now and what are the contents and some helpful keywords for you to understand context.
+        
+        {self.course_summary}
         """
         return system_prompt
 
@@ -127,3 +132,63 @@ class GroqConversationManager:
         for message in messages:
             role = "🧑‍💻 User" if message["role"] == "user" else "🤖 Personal Bot"
             print(f"{role}: {message['content']}\n")
+
+class GroqCorseSummarizer:
+    def __init__(self, mongodb):
+        self.groq_model = self.initialize_chatbot()
+        self.mongodb = mongodb
+
+    def initialize_chatbot(self):
+        """Initialize the Groq chatbot."""
+        return get_groq_model(groq_api_key, model)
+
+    def get_system_prompt(self):
+        """Construct the system prompt for the chatbot."""
+        return """
+        You are a summarizer for individual documents. Your task is to create a one-sentence summary of the provided document. Ensure the summary is concise, capturing all important details and key points.
+        """
+    
+    def summarize_chunk(self, user_input):
+        """Get a response from the Groq chatbot."""
+        system_prompt = self.get_system_prompt()
+        prompt = f"{system_prompt}\n\nQUESTION:\n{user_input}"
+        response = self.groq_model.predict(prompt)
+        return response
+
+    def get_combine_system_prompt(self):
+        """Construct the system prompt for the chatbot."""
+        return """
+        You are a summarizer for course materials. Your task is to combine a new document summary with an existing course summary to create a refined, updated course summary. Ensure that the new summary:
+        - Preserves all relevant details from the previous course summary.
+        - Incorporates key points from the new document summary.
+        - Includes information on whether the materials contain homework or assignment-related content, specifying the assignments if present.
+        - Provides a list of keywords relevant to the course for contextual understanding.
+
+        The output should strictly follow this JSON format and do not include anything other than JSON in your response:
+        {
+            "Contents": "A concise but detailed summary of the course contents.",
+            "Homework/Assignments": "Details about any homework or assignments included, or 'None' if not applicable.",
+            "Assignment Details": "If assignment present then assignment headings",
+            "Keywords": ["Keyword1", "Keyword2", ...] 
+        }
+
+        Keep the summary brief to avoid exceeding token limits, while retaining all essential details.
+        """
+
+    def summarize_course(self, summaries, existing_course_summary):
+        system_prompt = self.get_combine_system_prompt()
+        prompt = f"{system_prompt}\n\n EXISTING SUMMARY:\n{existing_course_summary} \n\nSUMMARIES:\n{summaries}"
+        response = self.groq_model.predict(prompt)
+        return response
+    
+    def save_course_summary(self, course_id, extracted_text, existing_course_summary):
+        try:
+            document_summary = self.summarize_chunk(extracted_text)
+            course_summary = self.summarize_course(document_summary, existing_course_summary)
+            if self.mongodb.set_course_summary(course_id, course_summary):
+                print("Done save_course_summary")
+            else:
+                print("Failed save_course_summary")
+        except Exception as e:
+            print("Failed save_course_summary")
+            print(e)
