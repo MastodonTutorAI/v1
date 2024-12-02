@@ -5,6 +5,7 @@ from data.embedding_handler import ChromaDBManager
 from utils import groq_util_module as groq_model
 import os
 import sys
+import threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -17,40 +18,81 @@ class Service:
         """
         self.mongodb = MongoDBHandler()
         self.chroma_db_manager = ChromaDBManager()
+        self.summarizer = groq_model.GroqCorseSummarizer(self.mongodb)
         # self.pipe = self.init_pipe_model()
         # self.groq_model = self.initialize_chatbot()
         print('Service initialized')
 
-    def set_course_id(self, course_id):
-        self.course_id = course_id
+    def set_course_details(self, course_details):
+        self.course_id = course_details['course_id']
+        self.course_summary = course_details['course_summary']
+        self.course_name = course_details['course_name']
 
     # 1. Embedding Creation
-    def create_embedding(self, file_content, course_id):
+    def save_file(self, file_content):
+        # Save file initially to avoid long time with status Processing
+        file_id = self.save_file_db(file_content, self.course_id)
+
+        # Start thread to complete remaining process
+        threading.Thread(target=self.create_embedding, args=(file_id, file_content)).start()
+
+    # def create_embedding(self, file_content, course_id):
+    #     """
+    #     Generates embeddings for different file types like PDF, text, pptx, etc.
+    #     After extracting text from the document, the text is stored in MongoDB.
+    #     Then, embeddings are created and stored in FAISS.
+    #     """
+    #     try:
+    #         # Should print <class 'streamlit.runtime.uploaded_file_manager.UploadedFile'>
+    #         print(f"File type: {type(file_content)}")
+    #         print(f"File name: {file_content.name}")
+    #         print(f"File content type: {file_content.type}")
+    #         extracted_text = extract_text_and_images(file_content)
+    #         if not extracted_text:
+    #             raise ValueError("Failed to extract text from the given file.")
+
+    #         # Save extracted text to MongoDB
+    #         file_id = self.save_file_db(
+    #             file_content, extracted_text, course_id)
+
+    #         # After saving to DB, create embeddings in FAISS
+    #         self.store_vector(course_id=course_id, document_id=str(
+    #             file_id), extracted_text=extracted_text)
+    #     except Exception as e:
+    #         print(f"Error processing file: {e}")
+    #         raise RuntimeError(f"Failed to process file: {e}")
+    
+    def create_embedding(self, file_id, file_content):
         """
         Generates embeddings for different file types like PDF, text, pptx, etc.
         After extracting text from the document, the text is stored in MongoDB.
-        Then, embeddings are created and stored in FAISS.
+        Then, embeddings are created and stored in Chroma.
         """
+        extracted_text = ''
         try:
-            # Should print <class 'streamlit.runtime.uploaded_file_manager.UploadedFile'>
-            print(f"File type: {type(file_content)}")
-            print(f"File name: {file_content.name}")
-            print(f"File content type: {file_content.type}")
+            print('__**In thread: Create Embeddings...**__')
             extracted_text = extract_text_and_images(file_content)
             if not extracted_text:
                 raise ValueError("Failed to extract text from the given file.")
 
+            print("**Extracted Text**")
+            
+            # After saving to DB, create embeddings in Chroma
+            self.store_vector(course_id=self.course_id, document_id=str(file_id), extracted_text=extracted_text)
+            print("**Embeddings Created**")
+            
+            # Create summary
+            self.summarizer.save_course_summary(self.course_id, extracted_text, self.course_summary)
+            print("**Summary Created**")
+
             # Save extracted text to MongoDB
-            file_id = self.save_file_db(
-                file_content, extracted_text, course_id)
-
-            # After saving to DB, create embeddings in FAISS
-            self.store_vector(course_id=course_id, document_id=str(
-                file_id), extracted_text=extracted_text)
+            self.update_file_db(file_id, extracted_text, 'Completed')
+            print('__**In thread: Completed...**__')
         except Exception as e:
-            print(f"Error processing file: {e}")
-            raise RuntimeError(f"Failed to process file: {e}")
-
+            print(f"Error creating embeddings: {e}")
+            # Save status failed
+            self.update_file_db(file_id, extracted_text if extracted_text else '', 'Failed')
+        
     # 2. Save to MongoDB (Abstract Layer)
     # DEEP
     def initialize_collections(self):
@@ -59,11 +101,17 @@ class Service:
         """
         self.mongodb.initialize_collections()
 
-    def save_file_db(self, file_content, extracted_text, course_id):
+    def save_file_db(self, file_content, course_id):
         """
         Saves the file and their extracted text to MongoDB.
         """
-        return self.mongodb.save_file(file_content, extracted_text, course_id)
+        return self.mongodb.save_file(file_content, course_id)
+
+    def update_file_db(self, file_id, extracted_text, status):
+        contents = {}
+        contents['status'] = status
+        contents['extracted_text'] = extracted_text
+        self.mongodb.update_file(file_id, contents)
 
     def get_file_db(self, course_id):
         """
@@ -206,8 +254,8 @@ class Service:
     #         print(f"Error generating response: {e}")
     #         return f"Error generating response: {e}"
 
-    def get_model_conversation(self, course_name):
-        return groq_model.GroqConversationManager(course_name)
+    def get_model_conversation(self):
+        return groq_model.GroqConversationManager(self.course_name, self.course_summary)
 
 # # To load data for development purposes.
 # file_service = Service()
