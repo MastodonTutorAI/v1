@@ -71,12 +71,7 @@ class MongoDBHandler:
     # function to save file and their extracted text to db
     def save_file(self, file_content, course_id):
         try:
-            # Remove the line that saves the file to GridFS
-            # file_id = self.fs.put(file_content, course_id=course_id)
-            
             course_material_metadata = {
-                # Remove the file_id reference
-                # 'file_id': file_id,
                 'course_id': course_id,
                 'file_name': file_content.name,
                 'actual_file': Binary(file_content.getvalue()),
@@ -86,8 +81,6 @@ class MongoDBHandler:
             }
             self.db.course_material_metadata.insert_one(course_material_metadata)
             print("File uploaded successfully.")
-            # Return the inserted document's ID instead of file_id
-            print(course_material_metadata['_id'])
             return course_material_metadata['_id']
         except Exception as e:
             raise Exception(f"Error saving file: {e}")

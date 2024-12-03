@@ -34,48 +34,6 @@ def content_page_header():
     st.subheader("Manage Course Material")
     add_vertical_space(1)
 
-
-# @st.fragment
-# def show_content():
-#     global selected_course_id
-#     selected_course_id = st.session_state.selected_course['course_id']
-#     content_page_header()
-#     retrieve_files()
-#     add_vertical_space(1)
-#     # Define columns for the layout
-#     colms = st.columns([2, 1])
-
-#     # File uploader
-#     uploaded_file = colms[0].file_uploader(
-#         "Choose a file", accept_multiple_files=True, type=['pdf', 'txt', 'pptx'], key=st.session_state['uploader_key'] #made change here to accept multiple files
-#     )
-
-#     # Render the upload button
-#     st.markdown(
-#         template.upload_button,
-#         unsafe_allow_html=True,
-#     )
-#     colms[1].markdown('<span id="upload_button"></span>',
-#                       unsafe_allow_html=True)
-
-#     # Upload button
-#     with st.container():
-#         if colms[1].button("Upload", key="upload_button", type='primary'):
-#             if uploaded_file:
-#                 with st.spinner('Processing...'):
-#                     # Pass file_content directly to the service
-#                     service.create_embedding(uploaded_file, selected_course_id)
-
-#                     # Append file details to session state after processing is complete
-#                     st.session_state['uploader_key'] += 1
-#                     st.success(
-#                         f"'{uploaded_file.name}' uploaded successfully!")
-#                     retrieve_files()
-#             else:
-#                 st.error("Please upload a valid file.")
-#     show_table()
-# new code for multiple file upload below
-
 class StreamlitFileWrapper:
     def __init__(self, uploaded_file):
         self._file = uploaded_file

@@ -1,7 +1,6 @@
 from utils.file_processor import extract_text_and_images  # Kanishk's import
 from data.mongodb_handler import MongoDBHandler
 from data.embedding_handler import ChromaDBManager
-# from utils import model_util as model
 from utils import groq_util_module as groq_model
 import os
 import sys
@@ -19,8 +18,6 @@ class Service:
         self.mongodb = MongoDBHandler()
         self.chroma_db_manager = ChromaDBManager()
         self.summarizer = groq_model.GroqCorseSummarizer(self.mongodb)
-        # self.pipe = self.init_pipe_model()
-        # self.groq_model = self.initialize_chatbot()
         print('Service initialized')
 
     def set_course_details(self, course_details):
@@ -35,32 +32,6 @@ class Service:
 
         # Start thread to complete remaining process
         threading.Thread(target=self.create_embedding, args=(file_id, file_content)).start()
-
-    # def create_embedding(self, file_content, course_id):
-    #     """
-    #     Generates embeddings for different file types like PDF, text, pptx, etc.
-    #     After extracting text from the document, the text is stored in MongoDB.
-    #     Then, embeddings are created and stored in FAISS.
-    #     """
-    #     try:
-    #         # Should print <class 'streamlit.runtime.uploaded_file_manager.UploadedFile'>
-    #         print(f"File type: {type(file_content)}")
-    #         print(f"File name: {file_content.name}")
-    #         print(f"File content type: {file_content.type}")
-    #         extracted_text = extract_text_and_images(file_content)
-    #         if not extracted_text:
-    #             raise ValueError("Failed to extract text from the given file.")
-
-    #         # Save extracted text to MongoDB
-    #         file_id = self.save_file_db(
-    #             file_content, extracted_text, course_id)
-
-    #         # After saving to DB, create embeddings in FAISS
-    #         self.store_vector(course_id=course_id, document_id=str(
-    #             file_id), extracted_text=extracted_text)
-    #     except Exception as e:
-    #         print(f"Error processing file: {e}")
-    #         raise RuntimeError(f"Failed to process file: {e}")
     
     def create_embedding(self, file_id, file_content):
         """
@@ -205,60 +176,6 @@ class Service:
     def remove_vector(self, file_id):
         self.chroma_db_manager.remove_vector(
             course_id=self.course_id, document_id=str(file_id))
-
-    # # 5. Create prompt using search_vector
-    # def create_prompt(self, messages, input):
-    #     """
-    #     Creates a prompt by combining the user's chat history and the current question.
-    #     """
-    #     chunks = self.search_vector(input, 5)
-    #     messages.append({"role": "system", "content": "Use below information to answer the question. " + str(chunks)})
-    #     return messages
-
-    # # 6. Set Default Prompt
-    # def get_system_prompt(self):
-    #     """
-    #     Sets a system prompt
-    #     """
-    #     system_prompt = (
-    #         "You will be acting as a professor's assistant for the graduate-level course named 'Cryptography and Network Security.' "
-    #         "Your primary responsibility is to answer students' questions about course content with clarity, as if the professor were addressing the question directly in a classroom setting."
-
-    #         "Here are the critical rules for your interaction:"
-    #         "<rules>"
-    #         "1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear."
-    #         "2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant."
-    #         "3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to cryptography and network security."
-    #         "4. Break down complex cryptography and network security topics into simple, relatable explanations. Use examples, analogies, and step-by-step guidance to clarify difficult concepts."
-    #         "5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material."
-    #         "6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way."
-    #         "</rules>"
-
-    #         "Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student, fostering understanding in cryptography and network security topics."
-    #     )
-
-    #     return system_prompt
-
-    # # 7. Call Model API for Response
-    # # AJINKYA
-    # def init_pipe_model(self):
-    #     """Initializes the chatbot pipeline model."""
-    #     try:
-    #         return model.initialize_chatbot()
-    #     except Exception as e:
-    #         print(f"Error loading model: {e}")
-
-    # def get_response_model(self, messages, max_new_tokens=256):
-    #     """Generates a chatbot response using the pipeline."""
-    #     if not self.pipe:
-    #         print("Model not initialized.")
-    #         return "[Error: Model not initialized]"
-    #     try:
-    #         messages = self.create_prompt(messages, messages[-1]["content"])
-    #         return model.generate_response(self.pipe, messages, max_new_tokens)
-    #     except Exception as e:
-    #         print(f"Error generating response: {e}")
-    #         return f"Error generating response: {e}"
 
     def get_model_conversation(self):
         return groq_model.GroqConversationManager(self.course_name, self.course_summary)
