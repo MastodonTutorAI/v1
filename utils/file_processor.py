@@ -33,23 +33,6 @@ def extract_text_and_images(file):
         print(f"Error processing file: {e}")
         raise RuntimeError(f"Failed to process file: {e}")
 
-
-# def extract_text_and_images(file_type,file): old code for single file processing for reference
-#     """Extracts text and images from an uploaded file."""
-#     try:
-#         if file_type == "application/pdf":
-#             return extract_text_from_pdf(file)
-#         elif file_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-#             return extract_text_from_ppt(file)
-#         elif file_type == "text/plain":
-#             return extract_text_from_text(file)
-#         elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-#             return extract_text_from_doc(file)
-#     except Exception as e:
-#         print(f"Error processing file: {e}")
-#         raise RuntimeError(f"Failed to process file: {e}")
-
-
 def extract_text_from_pdf(file):
     """Extracts text and images from an uploaded PDF using EasyOCR."""
     text_content = []
@@ -97,57 +80,6 @@ def extract_text_from_pdf(file):
                     # Skip this image if any error occurs during processing
                     continue
     return text_content
-
-
-# old code for ppt extraction
-# def extract_text_from_ppt(file):
-#     """Extracts text from an uploaded PPTX file."""
-#     text_content = []
-#     try:
-#         ppt_stream = BytesIO(file)
-#         prs = Presentation(ppt_stream)
-#     except Exception as e:
-#         raise RuntimeError(f"Error processing PPTX file:{e}")
-
-#     slides = list(enumerate(prs.slides))
-#     with Pool(cpu_count()) as pool:
-#         results = pool.map(process_slide, slides)
-
-#     for slide_processed in results:
-#         text_content.append(slide_processed)
-
-#     return text_content
-
-
-# def process_slide(slide_data):
-#     slide_num, slide = slide_data
-#     slide_content = []
-#     try:
-#         for shape in slide.shapes:
-#             if hasattr(shape, "text_frame") and shape.text_frame:
-#                 for paragraph in shape.text_frame.paragraphs:
-#                     for run in paragraph.runs:
-#                         slide_content.append(run.text)
-
-#             if shape.shape_type == 13:  # Check if the shape is an image
-#                 try:
-#                     image_bytes = shape.image_blob
-#                     image = Image.open(io.BytesIO(image_bytes))
-#                     image_np_array = np.array(image)
-
-#                     if image_np_array.size > 0:
-#                         ocr_response = reader.readtext(image_np_array)
-#                         for img in ocr_response:
-#                             slide_content.append(img[1])
-#                 except Exception as e:
-#                     print(
-#                         f"Error processing image on slide {slide_num + 1}: {e}")
-#     except Exception as e:
-#         print(f"Error occurred while processing slide {slide_num + 1}: {e}")
-#         raise RuntimeError(
-#             f"Error occurred while extracting text from image on slide {slide_num + 1}: {e}")
-#     return slide_content
-
 
 def extract_text_from_ppt(file_content):
     """Extracts text from an uploaded PPTX file."""
@@ -229,10 +161,10 @@ def extract_text_from_text(file):
     """Extracts text from an uploaded text file."""
     text_content = []
     try:
-        text_content = file.read().decode('utf-8').splitlines()
+        text_content = file.decode('utf-8').splitlines()
     except UnicodeDecodeError:
         file.seek(0)
-        text_content = file.read().decode('latin-1').splitlines()
+        text_content = file.decode('latin-1').splitlines()
     except Exception as e:
         raise RuntimeError(f"Error processing document file: {e}")
     return text_content

@@ -4,7 +4,7 @@ from datetime import datetime
 service = st.session_state.service
 
 def get_conversation_title(first_message):
-    max_title_length = 30
+    max_title_length = 25
     title = first_message[:max_title_length]
     if len(first_message) > max_title_length:
         title += "..."

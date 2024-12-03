@@ -40,7 +40,7 @@ def get_courses():
         courses = {}
         for course in courses_cursor:
             courses[course['course_id']] = course 
-        st.session_state.courses = courses
+        st.session_state.courses = dict(courses)
 
 @st.fragment
 def course_row(course):
@@ -60,7 +60,7 @@ def course_row(course):
             print("View content details")
             st.session_state['content_opened'] = True
             st.session_state['selected_course'] = course
-            service.set_course_id(course['course_id'])
+            service.set_course_details(course)
             st.rerun()
 
         # Button to view assistant
@@ -68,11 +68,11 @@ def course_row(course):
             st.session_state['assistant_opened'] = True
             st.session_state['conversation_fetch_flag'] = True
             st.session_state['selected_course'] = course
-            service.set_course_id(course['course_id'])
+            service.set_course_details(course)
             st.rerun()
         
         if cols[2].button("Delete Course", key=f"delete_course_{course['course_id']}", type="primary"):
-            service.set_course_id(course['course_id'])
+            service.set_course_details(course)
             if service.remove_course():
                 st.toast('Course deleted successfully')
                 get_courses()
@@ -101,8 +101,7 @@ def reset_session_state():
     st.session_state['selected_conversation'] = None
 
 def dashboard():
-    if st.session_state.courses == []:
-        get_courses()
+    get_courses()
 
     if st.session_state['content_opened'] == False and st.session_state['assistant_opened'] == False:
         dashboard_main()
@@ -123,8 +122,7 @@ def dashboard():
             st.subheader("**Assistant For "+ st.session_state['selected_course']['course_name'] + "**")
             st.caption("🚀 AI assistant of " + st.session_state['selected_course']['professor_name'])
             
-            course_name = st.session_state['selected_course']['course_name']
-            st.session_state.conversation_manager = service.get_model_conversation(course_name)
+            st.session_state.conversation_manager = service.get_model_conversation()
             get_conversation()
             show_assistant()
 
