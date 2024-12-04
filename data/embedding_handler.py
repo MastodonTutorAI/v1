@@ -169,6 +169,32 @@ class ChromaDBManager:
             return [result.page_content.split('\n') for result in results]
         except Exception as e:
             raise RuntimeError(e)
+        
+    def remove_vector(self, course_id, document_id):
+        """Remove a vector from the Chroma database and delete the course folder if no embeddings remain."""
+        try:
+            course_db = self.get_course_db(course_id)
+            
+            # Retrieve all embeddings associated with the specified document ID
+            ids_to_delete = course_db.get(where={"document_id": document_id})
+            if 'ids' in ids_to_delete:
+                ids_to_delete = ids_to_delete['ids']
+            else:
+                ids_to_delete = []
+
+            # Delete the embeddings if any IDs were found
+            if ids_to_delete:
+                course_db.delete(ids=ids_to_delete)
+                print(f"Embeddings for document_id {document_id} removed from Chroma DB.")
+                remaining_embeddings = course_db.get( where={"document_id": document_id})
+                if 'ids' in remaining_embeddings and not remaining_embeddings['ids']:
+                    print(f"Verified that all embeddings for document_id {document_id} have been removed for course_id {course_id}.")
+                else:
+                    print(f"Some embeddings for document_id {document_id} remain in Chroma DB of course_id {course_id}.")
+            else:
+                print(f"No embeddings found for document_id {document_id} in Chroma DB.")
+        except Exception as e:
+            raise RuntimeError(e)
 
 # db = ChromaDBManager()
 # extracted_text = "The quick brown fox jumps over the lazy dog."
