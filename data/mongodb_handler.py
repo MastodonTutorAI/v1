@@ -285,7 +285,7 @@ class MongoDBHandler:
         try:
             # Delete course
             course_result = self.db.courses.delete_one({'course_id': course_id})
-            if (course_result.deleted_count == 0):
+            if course_result.deleted_count == 0:
                 print("Course not found.")
                 return False
 
@@ -298,6 +298,22 @@ class MongoDBHandler:
             for file in files:
                 self.fs.delete(file['_id'])
             print("Deleted associated files from GridFS.")
+
+            # Delete conversations related to the course
+            conversation_result = self.db.conversations.delete_many({'course_id': course_id})
+            print(f"Deleted {conversation_result.deleted_count} conversations related to the course.")
+
+            # Remove course ID from student_courses
+            students = self.db.students.find({'student_courses': {'$regex': f'.*{course_id}.*'}})
+            for student in students:
+                courses = student['student_courses'].split(',')
+                courses = [course for course in courses if course != str(course_id)]
+                updated_courses = ','.join(courses)
+                self.db.students.update_one(
+                    {'_id': student['_id']},
+                    {'$set': {'student_courses': updated_courses}}
+                )
+            print("Removed course ID from student_courses.")
 
             print("Course removed successfully.")
             return True

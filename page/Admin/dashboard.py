@@ -16,7 +16,7 @@ def get_conversation():
             conversation['status'] = 'Updated'
         st.session_state['conversation_fetch_flag'] = False
 
-@st.dialog("Create New Assistant")
+@st.dialog("Create New Course")
 def create_new_assistant():
     st.caption("All are required fields")
     course_name = st.text_input("Course Name", "", placeholder="e.g. Deep Learning")
@@ -27,11 +27,14 @@ def create_new_assistant():
         if course_name == "" or course_id == "" or professor_name == "" or description == "":
             st.error("Please fill all the fields!")
             return
-        with st.spinner("Creating new assistant..."):
-            course_id = service.create_course(course_id, course_name, professor_name, description, st.session_state.user['_id'])
-            st.success("Assistant created successfully!")
-            get_courses()
-            st.rerun()
+        with st.spinner("Creating new course..."):
+            try:
+                course_id = service.create_course(course_id, course_name, professor_name, description, st.session_state.user['_id'])
+                st.success("Course created successfully!")
+                get_courses()
+                st.rerun()
+            except Exception as e:
+                st.error(e)
 
 def get_courses():
     with st.spinner("Fetching courses..."):

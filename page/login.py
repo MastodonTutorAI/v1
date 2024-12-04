@@ -13,6 +13,7 @@ def authenticate_user(username, password):
         return True, user['user_role']
     return False, None
 
+@st.fragment
 def login():
     # st.image("assets\Picture1.jpg", caption="")
     colms1 = st.columns([1, 1, 1])
@@ -21,8 +22,8 @@ def login():
     colms1[1].title("Mastodon TutorAI")
     container = colms2[1].container(border=True)
     with container:
-        username = st.text_input("Username", "admin")
-        password = st.text_input("Password", "admin", type="password")
+        username = st.text_input("Username", "")
+        password = st.text_input("Password", "", type="password")
         if st.button(label='Login'):
             is_authenticated, role = authenticate_user(username, password)
             
