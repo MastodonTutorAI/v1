@@ -1,7 +1,13 @@
 import streamlit as st
 from datetime import datetime
+import time
 
 service = st.session_state.service
+
+def show_stream(data):
+    for word in data.split(" "):
+        yield word + " "
+        time.sleep(0.02)
 
 def get_conversation_title(first_message):
     max_title_length = 25
@@ -81,6 +87,14 @@ def show_conversation():
                     delete_conversation(i)
                     st.rerun()
 
+    if st.session_state.messages == []:
+        response = st.session_state.conversation_manager.get_response(
+                user_input="Greet Me in short",
+                context="",
+                selected_conversation=None
+            )
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        
     if st.session_state.messages:
         for message in st.session_state.messages:
             if message["role"] != "system":
@@ -92,9 +106,17 @@ def show_assistant():
 
     if st.sidebar.button('New Chat', type='primary'):
         st.session_state.selected_conversation = None
-        st.session_state.messages = [{"role": "assistant", "content": "Hello! How can I assist you today?"}]
+        st.session_state.messages = []
         st.session_state.conversation_manager.clear_history()
-    
+        
+        with st.spinner("Loading..."):
+            response = st.session_state.conversation_manager.get_response(
+                user_input="Greet Me in short",
+                context=service.search_vector("", 5),
+                selected_conversation=None
+            )
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
     show_conversation()
 
     if input := st.chat_input("What's on your mind?"):
@@ -114,7 +136,7 @@ def show_assistant():
                         context=service.search_vector(input, 5),
                         selected_conversation=selected_conv
                     )
-                    st.write(response)
+                    st.write(show_stream(response))
             st.session_state.messages.append({"role": "assistant", "content": response})
 
         save_conversation()

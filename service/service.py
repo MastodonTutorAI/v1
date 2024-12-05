@@ -53,8 +53,12 @@ class Service:
             print("**Embeddings Created: "+str(file_id)+"**")
             
             # Create summary
-            self.summarizer.save_course_summary(self.course_id, extracted_text, self.course_summary)
-            print("**Summary Created: "+str(file_id)+"**")
+            #self.summarizer.save_course_summary(self.course_id, extracted_text, self.course_summary)
+            #print("**Summary Created: "+str(file_id)+"**")
+
+            # Create document summary
+            self.summarizer.save_document_summary(file_id, extracted_text)
+            print("**Document Summary Created: "+str(file_id)+"**")
 
             # Save extracted text to MongoDB
             self.update_file_db(file_id, extracted_text, 'Completed')
@@ -150,10 +154,10 @@ class Service:
         """
         return self.mongodb.remove_course(self.course_id)
 
-    def set_assistant_available(self, file_id, value):
+    def set_assistant_available(self, file_id, document_summary, value):
         self.chroma_db_manager.change_availability(
             course_id=self.course_id, document_id=str(file_id), available=value)
-        return self.mongodb.set_assistant_available(file_id, value)
+        return self.mongodb.set_assistant_available(self.course_id, self.course_summary, file_id, document_summary, value)
 
     def create_student_course(self, user_id, course_id):
         self.mongodb.create_student_course(user_id, course_id)
@@ -179,11 +183,3 @@ class Service:
 
     def get_model_conversation(self):
         return groq_model.GroqConversationManager(self.course_name, self.course_summary)
-
-# # To load data for development purposes.
-# file_service = Service()
-# password = file_service.mongodb.hash_password('student')
-# print(password)
-# # file_service.initialize_collections()
-# response = file_service.get_response_model(["Hello!"], max_new_tokens=256)
-# print(response)

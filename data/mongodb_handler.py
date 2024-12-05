@@ -68,6 +68,19 @@ class MongoDBHandler:
             # Because of threading just print error
             print(f"Error creating course: {e}")
 
+    def save_document_summary(self, file_id, summary):
+        try:
+            self.db.course_material_metadata.update_one(
+                {'_id': file_id},
+                {'$set': {'summary': summary}}
+            )
+            print("File status updated successfully.")
+            return True
+        except Exception as e:
+            # Because of threading just print error
+            print(f"Error creating course: {e}")
+            return False
+
     # function to save file and their extracted text to db
     def save_file(self, file_content, course_id):
         try:
@@ -77,7 +90,8 @@ class MongoDBHandler:
                 'actual_file': Binary(file_content.getvalue()),
                 'extracted_text': '',
                 'status': 'Processing',
-                'available': False
+                'available': False,
+                'summary': 'None'
             }
             self.db.course_material_metadata.insert_one(course_material_metadata)
             print("File uploaded successfully.")
@@ -219,8 +233,6 @@ class MongoDBHandler:
     def save_conversation(self, conversation_data):
         try:
             for conversation in conversation_data:
-                print("*****************************")
-                print(conversation)
                 # Remove 'status' before saving to the database
                 conversation_to_save = {key: value for key, value in conversation.items() if key != "status"}
 
@@ -299,12 +311,28 @@ class MongoDBHandler:
                 self.fs.delete(file['_id'])
             print("Deleted associated files from GridFS.")
 
+            # Delete conversations related to the course
+            conversation_result = self.db.conversations.delete_many({'course_id': course_id})
+            print(f"Deleted {conversation_result.deleted_count} conversations related to the course.")
+
+            # Remove course_id from student_courses
+            student_courses = self.db.student_courses.find({'course_id': {'$regex': f'.*{course_id}.*'}})
+            for student_course in student_courses:
+                course_ids = student_course['course_id'].split(',')
+                if course_id in course_ids:
+                    course_ids.remove(course_id)
+                    self.db.student_courses.update_one(
+                        {'student_id': student_course['student_id']},
+                        {'$set': {'course_id': ','.join(course_ids)}}
+                    )
+            print("Removed course_id from student_courses.")
+
             print("Course removed successfully.")
             return True
         except Exception as e:
             raise Exception(f"Error removing course: {e}")
 
-    def set_assistant_available(self, file_id, value):
+    def set_assistant_available(self, course_id, course_summary, file_id, document_summary, value):
         try:
             # Update the availability status for the given file_id
             result = self.db.course_material_metadata.update_one(
@@ -315,7 +343,15 @@ class MongoDBHandler:
             if result.matched_count == 0:
                 print("File not found.")
                 return False
-    
+
+            if value:  # Add document summary
+                updated_summary = course_summary + "\n" + document_summary
+            else:  # Remove document summary
+                updated_summary = course_summary.replace(document_summary, "").strip()
+
+            # Save the updated course summary
+            self.set_course_summary(course_id, updated_summary)
+
             print("Availability status updated successfully.")
             return True
         except Exception as e:

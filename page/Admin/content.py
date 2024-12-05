@@ -3,10 +3,7 @@ from page.html_template import template
 import time
 from streamlit_extras.add_vertical_space import add_vertical_space
 import io
-# import pdfplumber
-# from bson.binary import Binary
-# import fitz
-# from io import BytesIO
+
 
 service = st.session_state.service
 fields = ["File Name", "Available To Assistant", "Preview", 'RAG Status', "Action"]
@@ -24,7 +21,8 @@ def retrieve_files():
                 "file_name": file['file_name'],
                 "available": file['available'],
                 "file_id": file['_id'],
-                "status": file['status']
+                "status": file['status'],
+                "summary": file['summary']
             })
 
 
@@ -59,6 +57,7 @@ def show_content():
     content_page_header()
     retrieve_files()
     add_vertical_space(1)
+    service.set_course_details(st.session_state['selected_course'])
     # Define columns for the layout
     colms = st.columns([2, 1])
 
@@ -113,7 +112,9 @@ def show_table():
                 file_name = file_data['file_name']
                 file_id = file_data['file_id']
                 file_status = file_data['status']
+                document_summary = file_data['summary']
                 status_flag = True if file_status == 'Processing' or file_status == 'Failed' else False
+                delete_flag = True if file_status == 'Processing' else False
 
                 col1, col2, col3, col4, col5 = st.columns([1.5, 0.5, 0.5, 0.5, 0.5])
 
@@ -124,7 +125,7 @@ def show_table():
                     "Preview", key="Preview" + str(file_id), disabled=True)
 
                 with col5:
-                    if st.button("Delete", key="Delete" + str(file_id), disabled=status_flag):
+                    if st.button("Delete", key="Delete" + str(file_id), disabled=delete_flag):
                         file_id = file_data['file_id']
                         if service.delete_file(file_id):
                             st.session_state['uploaded_files'].remove(
@@ -146,7 +147,7 @@ def show_table():
                         value = file_data['available'] = not file_data['available']
                         file_id = file_data['file_id']
                         file_name = file_data['file_name']
-                        if service.set_assistant_available(file_id, value):
+                        if service.set_assistant_available(file_id, document_summary, value):
                             st.toast(
                                 'Availability updated for file: ' + file_name)
                             time.sleep(0.5)

@@ -1,17 +1,21 @@
+import spacy
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
+import stat
+import sqlite3
+import psutil
 from dotenv import load_dotenv
-
+    
 load_dotenv()
-
 class ChromaDBManager:
     def __init__(self, base_dir=None):
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'chroma_db'))
         self.chroma_base_dir = base_dir
         self.embeddings_model = OpenAIEmbeddings()
         self.course_db_map = {}
+        self.nlp = spacy.load("en_core_web_sm")
         self._initialize_course_db_map()
 
     def _initialize_course_db_map(self):
@@ -42,11 +46,11 @@ class ChromaDBManager:
 
     def get_course_db(self, course_id):
         """Fetch the Chroma DB instance for a given course."""
-        course_db_name = f'chroma_course_{course_id}'
-        course_db = self.course_db_map.get(course_db_name)
-        if course_db is None:
-            raise ValueError(f"Chroma DB for course ID {course_id} not found.")
-        return course_db
+        course_db_name = f"chroma_course_{course_id}"
+        if course_db_name not in self.course_db_map:
+            db_path = os.path.join("data", "chroma_db", course_db_name, "chroma.sqlite3")
+            self.course_db_map[course_db_name] = sqlite3.connect(db_path)
+        return self.course_db_map[course_db_name]
 
     def get_chunks(self, text, document_id, chunk_size=1000, chunk_overlap=128):
         """Split text into chunks and create metadata for each chunk."""
@@ -117,16 +121,55 @@ class ChromaDBManager:
         except Exception as e:
             raise RuntimeError(f"Error changing availability: {e}")
 
+    def is_question_related(self, query_text, course_id, similarity_threshold=0.2):
+        """
+        Determine if a query is both a valid question and related to the course PPTs.
+
+        Args:
+            query_text (str): The user's query.
+            course_id (str): The course ID to search in the Chroma DB.
+            similarity_threshold (float): Threshold for determining relevance.
+
+        Returns:
+            bool: True if the query is valid and related, False otherwise.
+        """
+        try:
+            # Step 1: Check if the query is a question
+            question_words = {'who', 'what', 'why', 'where', 'when', 'how', 'which', 'whose', 'whom'}
+            doc = self.nlp(query_text)
+            
+            # Check for common question patterns
+            is_question = any(token.text.lower() in question_words for token in doc) or query_text.endswith('?')
+
+            if not is_question:
+                return False  # Not a valid question
+
+            # Step 2: Perform a semantic relevance check with Chroma DB
+            course_db = self.get_course_db(course_id)
+            results = course_db.similarity_search(query_text, k=1, filter={"available": True})
+
+            if results and len(results) > 0:
+                top_result = results[0]
+                similarity_score = top_result.metadata.get("similarity_score", 1)
+                if similarity_score >= similarity_threshold:
+                    return True  # Question is related
+
+            return False  # Question is not related
+        except Exception as e:
+            raise RuntimeError(f"Error in determining if query is valid and related: {e}")
+        
     def search_vector(self, course_id, query_text, k=3, filters={"available": True}):
         """Search for similar vectors in the Chroma database based on the query text."""
         try:
             query_text = str(query_text)
+            if not self.is_question_related(query_text,course_id):
+                return "No Context."
             course_db = self.get_course_db(course_id)
             results = course_db.similarity_search(query_text, k, filter=filters)
             return [result.page_content.split('\n') for result in results]
         except Exception as e:
             raise RuntimeError(e)
-    
+        
     def remove_vector(self, course_id, document_id):
         """Remove a vector from the Chroma database and delete the course folder if no embeddings remain."""
         try:
@@ -153,16 +196,13 @@ class ChromaDBManager:
         except Exception as e:
             raise RuntimeError(e)
 
-
 # db = ChromaDBManager()
 # extracted_text = "The quick brown fox jumps over the lazy dog."
-# #db.create_course_db(2)
-# # db.store_vector(2, 1, extracted_text)
-# # db.change_availability(str('ACS5800'), str('674a4e6a19b1cbbf1fc78b53'), True)
-# result = db.search_vector(str('ACS5800'), "sniffing", k=10,filters={"available": True})
+#db.create_course_db(3)
+#db.store_vector(3, 1, extracted_text)
+# db.change_availability(3, 1, True)
+# result = db.search_vector(3, "over", k=5,filters={"available": True})
 # for i, item in enumerate(result, start=1):
 #      print(f"Result {i}:")
-#      print(f"Document ID: {item.metadata.get('document_id')}")
-#      print(f"Available: {item.metadata.get('available')}")
-#      print(f"Content Snippet:\n{item.page_content}\n")
-# # db.remove_vector(2, 1)
+#      print(f"Content Snippet:\n{item}\n")
+#db.remove_vector(3, 1)
