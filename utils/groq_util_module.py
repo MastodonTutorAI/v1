@@ -73,14 +73,14 @@ class GroqConversationManager:
         1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear.
         2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant.
         3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to {self.course_name}.
-        4. Break down complex {self.course_name} topics into simple, relatable explanations. Use examples, analogies, and step-by-step guidance to clarify difficult concepts.
+        4. **Strictly refrain from providing direct answers to questions from homework, assignments, or exams. Instead, focus on explaining the underlying concepts, offering guidance on how to approach the problem, or detailing relevant course content.**
         5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material.
         6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way.
 
         Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student.
-        
-        Below is course summary, what professor taught until now and what are the contents and some helpful keywords for you to understand context.
-        
+
+        Below is the course summary, what the professor has taught until now, and the course contents along with some helpful keywords for you to understand the context:
+
         {self.course_summary}
         """
         return system_prompt
@@ -145,10 +145,21 @@ class GroqCorseSummarizer:
     def get_system_prompt(self):
         """Construct the system prompt for the chatbot."""
         return """
-        You are a summarizer for individual documents. Your task is to create a one-sentence summary of the provided document. Ensure the summary is concise, capturing all important details and key points.
+        - You are a summarizer for individual documents. 
+        - Your task is to create a one-sentence summary of the provided document. 
+        - Ensure the summary is concise, capturing all important details and key points.
+        - I want to use summary for quiz generation, add important keywords or questions for future quiz generation in short.
+        - The output should strictly follow this JSON format and do not include anything other than JSON in your response:
+        {
+            "Summary": "In one senetence only.",
+            "Homework/Assignments": "If current document is about assignment then say Assignment if None",
+            "Assignment Details": "If assignment present then assignment headings or detilas in short",
+            "Keywords": ["Keyword1", "Keyword2", ...], 
+            "Quiz": "Quiz related details not answers just details."
+        }
         """
     
-    def summarize_chunk(self, user_input):
+    def summarize_document(self, user_input):
         """Get a response from the Groq chatbot."""
         system_prompt = self.get_system_prompt()
         prompt = f"{system_prompt}\n\nQUESTION:\n{user_input}"
@@ -181,9 +192,20 @@ class GroqCorseSummarizer:
         response = self.groq_model.predict(prompt)
         return response
     
+    def save_document_summary(self, file_id, extracted_text):
+        try:
+            document_summary = self.summarize_document(extracted_text)
+            if self.mongodb.save_document_summary(file_id, document_summary):
+                print("Done save_document_summary")
+            else:
+                print("Failed save_document_summary")
+        except Exception as e:
+            print("Failed save_document_summary")
+            print(e)
+
     def save_course_summary(self, course_id, extracted_text, existing_course_summary):
         try:
-            document_summary = self.summarize_chunk(extracted_text)
+            document_summary = self.summarize_document(extracted_text)
             course_summary = self.summarize_course(document_summary, existing_course_summary)
             if self.mongodb.set_course_summary(course_id, course_summary):
                 print("Done save_course_summary")
