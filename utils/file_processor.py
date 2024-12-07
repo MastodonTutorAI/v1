@@ -1,3 +1,4 @@
+import re
 import fitz  # PyMuPDF for PDF processing
 from pdf2image import convert_from_bytes
 from PIL import Image
@@ -32,6 +33,7 @@ def extract_text_and_images(file):
     except Exception as e:
         print(f"Error processing file: {e}")
         raise RuntimeError(f"Failed to process file: {e}")
+
 
 def extract_text_from_pdf(file):
     """Extracts text and images from an uploaded PDF using EasyOCR."""
@@ -79,7 +81,11 @@ def extract_text_from_pdf(file):
                 except Exception:
                     # Skip this image if any error occurs during processing
                     continue
+
+    text_content = clean_extracted_text(text_content)
+    print(text_content)
     return text_content
+
 
 def extract_text_from_ppt(file_content):
     """Extracts text from an uploaded PPTX file."""
@@ -123,6 +129,8 @@ def extract_text_from_ppt(file_content):
     except Exception as e:
         raise RuntimeError(f"Error processing PPTX file: {e}")
 
+    text_content = clean_extracted_text(text_content)
+    print(text_content)
     return text_content
 
 
@@ -154,6 +162,8 @@ def extract_text_from_doc(file):
     except Exception as e:
         raise RuntimeError(f"Error processing text file: {e}")
 
+    text_content = clean_extracted_text(text_content)
+    print(text_content)
     return text_content
 
 
@@ -167,4 +177,33 @@ def extract_text_from_text(file):
         text_content = file.decode('latin-1').splitlines()
     except Exception as e:
         raise RuntimeError(f"Error processing document file: {e}")
+    text_content = clean_extracted_text(text_content)
+    print(text_content)
     return text_content
+
+
+def clean_extracted_text(text):
+    """
+    Cleans the extracted text by removing irrelevant words/phrases (stopwords).
+
+    Args:
+        text (list): List of text lines extracted from the document.
+        stopwords (list): List of words/phrases to exclude.
+
+    Returns:
+        list: Cleaned text content with stopwords removed.
+    """
+    stopwords = ["Purdue", "Outline", "Chapter", "University", "Fort Wayne", "CONTD", "DEMO", "Q & A", "Have Fun",
+                 "PURDUE", "purdue", "UNIVERSITY", "U N [ V E R $ [ T Y", "FORT WAYNE", "U N I V E R $ I T Y", "U N I V E R S I T Y"]
+
+    cleaned_text = []
+    for line in text:
+        # Remove each stopword from the line
+        for stopword in stopwords:
+            line = line.replace(stopword, "").strip()
+
+        # Remove extra whitespace and skip empty lines
+        if line:
+            cleaned_text.append(line)
+
+    return cleaned_text
