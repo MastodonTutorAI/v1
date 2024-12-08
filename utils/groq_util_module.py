@@ -50,7 +50,6 @@ class GroqConversationManager:
         
         # Create prompt using context and user input
         prompt = self.create_prompt(context, user_input)
-        
         # Get Additional rules for homework-related queries
         rules_for_query = self.get_rules_for_query(user_input)
         
@@ -151,10 +150,8 @@ class GroqConversationManager:
         :param user_query: The user's query to check
         :return: rules if the query is related to homework, null otherwise
         """
-        # result = self.homework_utils.search_vector_homework_with_scores(user_query, top_k=10)
-        search_results = self.homework_utils.search_vector_homework(user_query, top_k=10)
-        chunks = [result.page_content for result in search_results]
-        result = self.homework_utils.cross_encoder_similarity_batch(user_query, chunks)
+        result = self.homework_utils.is_homework_query(user_query)
+        print("Result of is_homework_query:", result)
         if result:
             rules = (
                 """1. Above query by USER can be related to HOMEWORK or ASSIGNMENTS so FOLLOW BELOW RULES FOR THIS QUERY STRICTLY. 

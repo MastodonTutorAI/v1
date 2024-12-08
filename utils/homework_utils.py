@@ -15,6 +15,7 @@ class HomeworkUtils:
         self.chroma_db_manager = ChromaDBManager()
         self.mongodb = MongoDBHandler()
         self.homework_files_ids = homework_files_ids
+        self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-6")
 
     def cross_encoder_similarity_batch(self, user_query, chunks):
         """
@@ -24,15 +25,13 @@ class HomeworkUtils:
         :param chunks: A list of chunks to compare against the query
         :return: True if any chunk is highly relevant, False otherwise
         """
-        cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-6")
         pairs = [(user_query, chunk) for chunk in chunks]
-        scores = cross_encoder.predict(pairs)  # Batch processing
+        scores = self.cross_encoder.predict(pairs)  # Batch processing
         percentage_scores = [round(score * 100, 2) for score in scores]
         print("Relevance Scores in %:", percentage_scores)
         
         for i, score in enumerate(percentage_scores):
             if score > 50:
-                print("Homework question found in chunk:", i)
                 return True
         return False
 
