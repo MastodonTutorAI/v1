@@ -24,3 +24,5 @@ spacy  # Add spaCy to the requirements
 
 # Note: After installing the dependencies, run the following command to download the spaCy model:
 # python -m spacy download en_core_web_sm
+llama-cpp-python>=0.1.0
+
