@@ -112,3 +112,114 @@ def generate_questions(topic, course_summary):
     except Exception as e:
         st.error(f"Error during question generation: {e}")
         return None
+
+# Function to parse multiple questions from a batch
+
+
+def parse_questions(output):
+    """
+    Parse a batch of 5 questions into individual questions, options, and correct answers.
+    """
+    questions = []
+    correct_answers = {}
+    current_question = None
+    options = []
+
+    lines = output.strip().split("\n")
+    for line in lines:
+        line = line.strip()
+        if line.startswith("Q:"):
+            if current_question and len(options) == 4:
+                questions.append((current_question, options))
+                correct_answers[len(questions) - 1] = correct_answer
+            current_question = line[2:].strip()
+            options = []
+            correct_answer = None
+        elif line.startswith(("A.", "B.", "C.", "D.")):
+            options.append(line)
+        elif line.startswith("Answer:"):
+            correct_answer = line.split("Answer:")[-1].strip()
+
+    # Append the last question
+    if current_question and len(options) == 4:
+        questions.append((current_question, options))
+        correct_answers[len(questions) - 1] = correct_answer
+
+    return questions, correct_answers
+
+
+# Function to generate a quiz
+def generate_quiz(topic, course_summary):
+    """
+    Generate a quiz with 5 questions.
+    """
+    questions_text = generate_questions(topic, course_summary)
+    if questions_text:
+        questions, correct_answers = parse_questions(questions_text)
+        return questions, correct_answers
+    else:
+        st.warning("Failed to generate questions.")
+        return [], {}
+
+
+# Streamlit UI for quiz generation
+st.title("Pop Quiz Generator")
+st.write("Generate a quiz for selected course to practice your knowledge!")
+
+# Use courses from session state
+if "courses" not in st.session_state or not st.session_state.courses:
+    st.error("No courses available in the session state.")
+    st.stop()
+
+courses = st.session_state.courses
+
+selected_course = st.selectbox(
+    "Select a course:",
+    options=list(courses.keys()),
+    format_func=lambda x: courses[x]["course_name"],
+)
+print(selected_course)
+
+if st.button("Generate Quiz"):
+    with st.spinner("Generating quiz..."):
+        course_name = courses[selected_course]["course_name"]
+        course_summary = courses[selected_course]["course_summary"]
+        print(course_summary)
+        extracted_summary = extract_summaries_from_string(
+            course_summary)  # Use updated function
+        st.session_state.questions, st.session_state.correct_answers = generate_quiz(
+            course_name, extracted_summary
+        )
+        if not st.session_state.questions:
+            st.warning(
+                "Quiz generation failed. Please check the course summary.")
+
+
+# Displaying the quiz
+if st.session_state.questions:
+    for idx, (question, options) in enumerate(st.session_state.questions):
+        if idx not in st.session_state.user_answers:
+            st.session_state.user_answers[idx] = None
+
+        st.session_state.user_answers[idx] = st.radio(
+            f"{idx + 1}. {question}",
+            options,
+            key=f"question_{idx}",
+        )
+
+    if st.button("Submit Quiz"):
+        correct_count = 0
+        for idx, (question, options) in enumerate(st.session_state.questions):
+            correct_answer = st.session_state.correct_answers[idx]
+            user_answer = st.session_state.user_answers[idx]
+
+            if user_answer == correct_answer:
+                correct_count += 1
+                st.success(f"Question {idx + 1}: Correct!")
+            else:
+                st.error(
+                    f"Question {idx + 1}: Incorrect! Correct answer: {correct_answer}"
+                )
+
+        st.write(
+            f"Your Score: {correct_count}/{len(st.session_state.questions)}")
