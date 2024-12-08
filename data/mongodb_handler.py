@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from bson.objectid import ObjectId
 import bcrypt
 from pymongo.errors import DuplicateKeyError
+import re
 
 load_dotenv()
 
@@ -58,10 +59,18 @@ class MongoDBHandler:
         try:
             status = contents['status']
             extracted_text = contents['extracted_text']
+            
+            is_homework = self.classify_homework_file(extracted_text)
 
             self.db.course_material_metadata.update_one(
                 {'_id': file_id},
-                {'$set': {'status': status, 'extracted_text': extracted_text}}
+                {
+                    '$set': {
+                        'status': status, 
+                        'extracted_text': extracted_text,
+                        'is_homework': is_homework
+                    }
+                }
             )
             print("File status updated successfully.")
         except Exception as e:
@@ -91,7 +100,8 @@ class MongoDBHandler:
                 'extracted_text': '',
                 'status': 'Processing',
                 'available': False,
-                'summary': 'None'
+                'summary': 'None',
+                'is_homework': False
             }
             self.db.course_material_metadata.insert_one(course_material_metadata)
             print("File uploaded successfully.")
@@ -379,3 +389,47 @@ class MongoDBHandler:
             return True
         except Exception as e:
             raise Exception(f"Error removing file: {e}")
+        
+    def classify_homework_file(self, extracted_text):
+        try:
+            print("Starting classification process...")
+            homework_keywords = ["assignment", "homework", "due date", "submit", "quiz"]
+            
+            # Combine list of strings into one string if extracted_text is a list
+            if isinstance(extracted_text, list):
+                print("Extracted text is a list. Joining all items into a single string...")
+                extracted_text = " ".join(extracted_text)
+
+            # Convert extracted text to lowercase for case-insensitive matching
+            print(f"Extracted text: {extracted_text}")
+            extracted_text_lower = extracted_text.lower()
+
+            # Use regular expressions to match exact keywords
+            is_homework = any(
+                re.search(rf'\b{keyword}\b', extracted_text_lower) for keyword in homework_keywords
+            )
+            if is_homework:
+                print("The file is classified as Homework/Assignment.")
+            else:
+                print("The file does not contain homework-related keywords and is classified as Study Material.")
+
+            return is_homework
+        except Exception as e:
+            print(f"Error during classification: {e}")
+            return False
+    
+    def get_homework_file_ids(self, course_id):
+        try:
+            # Query the database for homework files and return only the '_id' field
+            homework_file_ids = self.db.course_material_metadata.find(
+                {'course_id': course_id, 'is_homework': True},
+                {'_id': 1}
+            )
+            
+            # Convert cursor to a list of _id values as strings
+            homework_ids = [str(file['_id']) for file in homework_file_ids]
+            
+            print(f"Retrieved homework file IDs successfully: {homework_ids}")
+            return homework_ids
+        except Exception as e:
+            raise Exception(f"Error retrieving homework files: {e}")

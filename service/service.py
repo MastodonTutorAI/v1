@@ -1,13 +1,13 @@
-from utils.file_processor import extract_text_and_images  # Kanishk's import
-from data.mongodb_handler import MongoDBHandler
-from data.embedding_handler import ChromaDBManager
-from utils import groq_util_module as groq_model
 import os
 import sys
 import threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from utils.file_processor import extract_text_and_images
+from data.mongodb_handler import MongoDBHandler
+from data.embedding_handler import ChromaDBManager
+from utils import groq_util_module as groq_model
 
 class Service:
 
@@ -19,6 +19,9 @@ class Service:
         self.chroma_db_manager = ChromaDBManager()
         self.summarizer = groq_model.GroqCorseSummarizer(self.mongodb)
         print('Service initialized')
+        
+    def set_course_id(self, course_id):
+        self.course_id = course_id
 
     def set_course_details(self, course_details):
         self.course_id = course_details['course_id']
@@ -171,10 +174,11 @@ class Service:
         self.chroma_db_manager.store_vector(
             course_id, document_id, extracted_text)
 
-    def search_vector(self, query_text, top_k=3):
+    def search_vector(self, query_text, top_k=5):
         """
         Searches for similar vectors in the FAISS vector store based on the query vector.
         """
+        print(f"Searching vector for {query_text}...")
         return self.chroma_db_manager.search_vector(course_id=self.course_id, query_text=query_text, k=top_k)
 
     def remove_vector(self, file_id):
@@ -182,4 +186,10 @@ class Service:
             course_id=self.course_id, document_id=str(file_id))
 
     def get_model_conversation(self):
-        return groq_model.GroqConversationManager(self.course_name, self.course_summary)
+        course_id = self.course_id
+        homework_files_ids = self.get_homework_file_ids()
+        return groq_model.GroqConversationManager(self.course_name, self.course_summary, course_id, homework_files_ids)
+    
+    def get_homework_file_ids(self):
+        return self.mongodb.get_homework_file_ids(self.course_id)
+
