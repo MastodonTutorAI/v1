@@ -3,9 +3,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
-import stat
 import sqlite3
-import psutil
 from dotenv import load_dotenv
     
 load_dotenv()
@@ -135,7 +133,7 @@ class ChromaDBManager:
         """
         try:
             # Step 1: Check if the query is a question
-            question_words = {'who', 'what', 'why', 'where', 'when', 'how', 'which', 'whose', 'whom'}
+            question_words = {'who', 'what', 'why', 'where', 'when', 'how', 'which', 'whose', 'whom', 'explain', 'describe', 'define', 'list', 'solve', 'give'}
             doc = self.nlp(query_text)
             
             # Check for common question patterns
@@ -163,6 +161,7 @@ class ChromaDBManager:
         try:
             query_text = str(query_text)
             if not self.is_question_related(query_text,course_id):
+                print("Unrelated question.")
                 return "No Context."
             course_db = self.get_course_db(course_id)
             results = course_db.similarity_search(query_text, k, filter=filters)
@@ -195,6 +194,27 @@ class ChromaDBManager:
                 print(f"No embeddings found for document_id {document_id} in Chroma DB.")
         except Exception as e:
             raise RuntimeError(e)
+    
+    def search_vector_by_document_id(self, query_text, course_id, document_ids, k=5):
+        """
+        Search for similar vectors in the Chroma database based on the document_ids.
+        
+        Args:
+            course_id (str): The course ID to search in the Chroma DB.
+            document_ids (list): The document IDs to filter by.
+            k (int): Number of top results to retrieve.
+
+        Returns:
+            list: relevant results based on the document_ids.
+        """
+        try:
+            query_text = str(query_text)
+            course_db = self.get_course_db(course_id)
+
+            results = course_db.similarity_search(query_text, k=k, filter={"document_id": {"$in": document_ids}})
+            return results
+        except Exception as e:
+            raise RuntimeError(f"Error searching vectors by document_id: {e}")
 
 # db = ChromaDBManager()
 # extracted_text = "The quick brown fox jumps over the lazy dog."

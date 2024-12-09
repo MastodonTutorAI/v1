@@ -9,6 +9,7 @@ from langchain_core.prompts import (
 )
 from langchain_core.messages import SystemMessage
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+from utils.homework_utils import HomeworkUtils
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,11 +19,12 @@ model = os.getenv('MODEL_ID_GROQ')
 conversational_memory_length = 5
 
 class GroqConversationManager:
-    def __init__(self, course_name, course_summary):
+    def __init__(self, course_name, course_summary, course_id, homework_files_ids):
         self.course_name = course_name
         self.course_summary = course_summary
         self.conversation_chain = None
         self.initialize_conversation_chain()
+        self.homework_utils = HomeworkUtils(course_id, homework_files_ids)
     
     def initialize_conversation_chain(self):
         self.conversation_chain = self.get_conversation()
@@ -40,12 +42,21 @@ class GroqConversationManager:
                     self.conversation_chain.memory.chat_memory.add_ai_message(assistant_msg["content"])
 
     def get_response(self, user_input, context, selected_conversation=None):
+        print("User input:", user_input)
+        rules_for_query = None
         if selected_conversation is not None:
             conversation_messages = selected_conversation.get("conversation", [])
             self.load_conversation_history(conversation_messages)
         
         # Create prompt using context and user input
         prompt = self.create_prompt(context, user_input)
+        # Get Additional rules for homework-related queries
+        rules_for_query = self.get_rules_for_query(user_input)
+        
+        # Add rules to the prompt if they exist
+        if rules_for_query:
+            prompt = f"{prompt}\n\n Rules: {rules_for_query}"
+            
         print(prompt)
         response = self.conversation_chain.predict(human_input=prompt)
         return response
@@ -73,9 +84,8 @@ class GroqConversationManager:
         1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear.
         2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant.
         3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to {self.course_name}.
-        4. **Strictly refrain from providing direct answers to questions from homework, assignments, or exams. Instead, focus on explaining the underlying concepts, offering guidance on how to approach the problem, or detailing relevant course content.**
-        5. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material.
-        6. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way.
+        4. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material.
+        5. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way.
 
         Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student.
 
@@ -132,6 +142,27 @@ class GroqConversationManager:
         for message in messages:
             role = "🧑‍💻 User" if message["role"] == "user" else "🤖 Personal Bot"
             print(f"{role}: {message['content']}\n")
+            
+    def get_rules_for_query(self, user_query):
+        """
+        Check if the user query is related to homework or not. If so, provide additional rules.
+        
+        :param user_query: The user's query to check
+        :return: rules if the query is related to homework, null otherwise
+        """
+        result = self.homework_utils.is_homework_query(user_query)
+        print("Result of is_homework_query:", result)
+        if result:
+            rules = (
+                """1. Above query by USER can be related to HOMEWORK or ASSIGNMENTS so FOLLOW BELOW RULES FOR THIS QUERY STRICTLY. 
+                2. It is ILLEGAL to provide DIRECT Answer to this question. Do NOT be RUDE by directly saying that you can't help.
+                3. Give a GOOD starting hint to start solving the task.
+                4.  ONLY cover A bird's eye view of the task. REMEMBER to only give 20% HINT limiting to 50 words which should be CORRECT.
+                5. At the end give a note that this question might be related to HOMEWORK or ASSIGNMENTS so I am not giving the direct answer.
+                """
+            )
+            return rules 
+            
 
 class GroqCorseSummarizer:
     def __init__(self, mongodb):
