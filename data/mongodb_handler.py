@@ -293,7 +293,8 @@ class MongoDBHandler:
 
     def get_conversation(self, course_id, user_id):
         try:
-            conversation = self.db.conversations.find({'course_id': course_id, 'user_id': user_id})
+            print(course_id)
+            conversation = self.db.conversations.find({'course_id': {'$eq': course_id}, 'user_id': user_id})
             if conversation:
                 print("Conversation retrieved successfully.")
                 return conversation
@@ -384,12 +385,22 @@ class MongoDBHandler:
             if result.deleted_count == 0:
                 print("File metadata not found.")
                 return False
+
+            # Remove the file's summary from the course summary
+            course_id = file['course_id']
+            document_summary = file['summary']
+            course = self.db.courses.find_one({'course_id': course_id})
+            if course:
+                course_summary = course['course_summary']
+                updated_summary = course_summary.replace(document_summary, "").strip()
+                self.set_course_summary(course_id, updated_summary)
+                print("File summary removed from course summary.")
     
             print("File metadata removed successfully.")
             return True
         except Exception as e:
             raise Exception(f"Error removing file: {e}")
-        
+
     def classify_homework_file(self, extracted_text):
         try:
             print("Starting classification process...")
@@ -401,7 +412,6 @@ class MongoDBHandler:
                 extracted_text = " ".join(extracted_text)
 
             # Convert extracted text to lowercase for case-insensitive matching
-            print(f"Extracted text: {extracted_text}")
             extracted_text_lower = extracted_text.lower()
 
             # Use regular expressions to match exact keywords

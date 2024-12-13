@@ -1,16 +1,15 @@
-runtime: python
-runtime_config:
-    operating_system: "ubuntu22"
-    runtime_version: "3.10"
+runtime: custom
 env: flex
-entrypoint: streamlit run run.py --server.port 8080 --server.address 0.0.0.0 --server.enableCORS false --server.enableXsrfProtection false
 network:
     session_affinity: true
+
 resources:
     cpu: 4
     memory_gb: 8
     disk_size_gb: 20
+
 readiness_check:
-    app_start_timeout_sec: 12000
+    app_start_timeout_sec: 22000
+
 automatic_scaling:
     max_num_instances: 1

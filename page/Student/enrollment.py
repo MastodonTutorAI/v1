@@ -40,13 +40,14 @@ def show_table():
 
         for course in st.session_state.courses:
             course_name = course['course_name']
+            course_id = course['course_id']
             status = course['enrolled']
             col1, col2, col3 = st.columns([2, 2, 0.5])
             col1.write(course_name)
             col2.write(course['professor_name'])
             with col3:
-                button_label = 'Already Enrolled' if status else 'Enroll'
-                if st.button(button_label, key="enroll" + str(course_name), disabled=status):
+                button_label = 'Enrolled' if status else 'Enroll'
+                if st.button(button_label, key="enroll" + str(course_id), disabled=status):
                     enroll_in_course(course['course_id'])
 
 def show_courses():

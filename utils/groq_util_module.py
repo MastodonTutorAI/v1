@@ -19,12 +19,13 @@ model = os.getenv('MODEL_ID_GROQ')
 conversational_memory_length = 5
 
 class GroqConversationManager:
-    def __init__(self, course_name, course_summary, course_id, homework_files_ids):
+    def __init__(self, service, course_name, course_summary, course_id, homework_files_ids):
+        print('Initializing Model..')
         self.course_name = course_name
         self.course_summary = course_summary
         self.conversation_chain = None
         self.initialize_conversation_chain()
-        self.homework_utils = HomeworkUtils(course_id, homework_files_ids)
+        self.homework_utils = HomeworkUtils(course_id, homework_files_ids, service)
     
     def initialize_conversation_chain(self):
         self.conversation_chain = self.get_conversation()
@@ -50,9 +51,15 @@ class GroqConversationManager:
         
         # Create prompt using context and user input
         prompt = self.create_prompt(context, user_input)
-        # Get Additional rules for homework-related queries
-        rules_for_query = self.get_rules_for_query(user_input)
+
+        if context != 'No Context' and context != 'skip':
+            print('Checking Homework query..')
+            # Get Additional rules for homework-related queries
+            rules_for_query = self.get_rules_for_query(user_input)
         
+        if context == 'skip':
+            context = ''
+
         # Add rules to the prompt if they exist
         if rules_for_query:
             prompt = f"{prompt}\n\n Rules: {rules_for_query}"
@@ -63,7 +70,7 @@ class GroqConversationManager:
 
     def create_prompt(self, context, user_input):
         """Create a prompt by combining context and user input."""
-        prompt = f"CONTEXT\n\n {context}\n\n Question\n\n {user_input}"
+        prompt = f"CONTEXT\n\n {context}\n\n User Query\n\n {user_input}"
         return prompt
 
     def clear_history(self):
@@ -83,9 +90,9 @@ class GroqConversationManager:
         Here are the critical rules for your interaction:
         1. Answer questions in a conversational, humanized manner, emulating the teaching style of a professor. Be supportive, engaging, and clear.
         2. Prioritize the provided course material to ensure responses align closely with the professor's teachings. If context is incomplete, supplement with your knowledge, but keep it course-relevant.
-        3. If a question or word is not related to the course material or context, do not answer based on the course material. Only provide responses related to {self.course_name}.
+        3. If a question or word is not related to the context, do not answer based on the context. Only provide responses related to {self.course_name}.
         4. Approach each question respectfully, as if asked directly by a student to the professor. Your responses should be informative, helpful, and patient, especially when students may be struggling with challenging material.
-        5. When appropriate, encourage deeper understanding and curiosity in students. Avoid overly technical jargon, but explain key terms in an accessible way.
+        5. If No Context then just say you do not have relevant information about this topic until professor shares related material.
 
         Your goal is to provide context-driven, accurate responses that feel as though the professor is addressing the student.
 
@@ -131,17 +138,6 @@ class GroqConversationManager:
         """Generate a response based on user input."""
         response = conversation.predict(human_input=user_question)
         return response
-
-    def update_chat_history(self, messages, role, content):
-        """Update chat history with new content."""
-        messages.append({"role": role, "content": content})
-        return messages
-
-    def display_conversation(self, messages):
-        """Display the conversation in a user-friendly format."""
-        for message in messages:
-            role = "🧑‍💻 User" if message["role"] == "user" else "🤖 Personal Bot"
-            print(f"{role}: {message['content']}\n")
             
     def get_rules_for_query(self, user_query):
         """
@@ -157,8 +153,10 @@ class GroqConversationManager:
                 """1. Above query by USER can be related to HOMEWORK or ASSIGNMENTS so FOLLOW BELOW RULES FOR THIS QUERY STRICTLY. 
                 2. It is ILLEGAL to provide DIRECT Answer to this question. Do NOT be RUDE by directly saying that you can't help.
                 3. Give a GOOD starting hint to start solving the task.
-                4.  ONLY cover A bird's eye view of the task. REMEMBER to only give 20% HINT limiting to 50 words which should be CORRECT.
+                4. ONLY cover A bird's eye view of the task. REMEMBER to only give 20% HINT limiting to 50 words which should be CORRECT.
+                5. DO NOT GIVE ANY CODE AT ALL FOR ASSIGNMENT OR HOMEWORK QUESTIONS.
                 5. At the end give a note that this question might be related to HOMEWORK or ASSIGNMENTS so I am not giving the direct answer.
+                6. Do not mention about context in your response.
                 """
             )
             return rules 
@@ -184,7 +182,6 @@ class GroqCorseSummarizer:
         {
             "Summary": "In one senetence only.",
             "Homework/Assignments": "If current document is about assignment then say Assignment if None",
-            "Assignment Details": "If assignment present then assignment headings or detilas in short",
             "Keywords": ["Keyword1", "Keyword2", ...], 
             "Quiz": "Quiz related details not answers just details."
         }
@@ -197,31 +194,31 @@ class GroqCorseSummarizer:
         response = self.groq_model.predict(prompt)
         return response
 
-    def get_combine_system_prompt(self):
-        """Construct the system prompt for the chatbot."""
-        return """
-        You are a summarizer for course materials. Your task is to combine a new document summary with an existing course summary to create a refined, updated course summary. Ensure that the new summary:
-        - Preserves all relevant details from the previous course summary.
-        - Incorporates key points from the new document summary.
-        - Includes information on whether the materials contain homework or assignment-related content, specifying the assignments if present.
-        - Provides a list of keywords relevant to the course for contextual understanding.
+    # def get_combine_system_prompt(self):
+    #     """Construct the system prompt for the chatbot."""
+    #     return """
+    #     You are a summarizer for course materials. Your task is to combine a new document summary with an existing course summary to create a refined, updated course summary. Ensure that the new summary:
+    #     - Preserves all relevant details from the previous course summary.
+    #     - Incorporates key points from the new document summary.
+    #     - Includes information on whether the materials contain homework or assignment-related content, specifying the assignments if present.
+    #     - Provides a list of keywords relevant to the course for contextual understanding.
 
-        The output should strictly follow this JSON format and do not include anything other than JSON in your response:
-        {
-            "Contents": "A concise but detailed summary of the course contents.",
-            "Homework/Assignments": "Details about any homework or assignments included, or 'None' if not applicable.",
-            "Assignment Details": "If assignment present then assignment headings",
-            "Keywords": ["Keyword1", "Keyword2", ...] 
-        }
+    #     The output should strictly follow this JSON format and do not include anything other than JSON in your response:
+    #     {
+    #         "Contents": "A concise but detailed summary of the course contents.",
+    #         "Homework/Assignments": "Details about any homework or assignments included, or 'None' if not applicable.",
+    #         "Assignment Details": "If assignment present then assignment headings",
+    #         "Keywords": ["Keyword1", "Keyword2", ...] 
+    #     }
 
-        Keep the summary brief to avoid exceeding token limits, while retaining all essential details.
-        """
+    #     Keep the summary brief to avoid exceeding token limits, while retaining all essential details.
+    #     """
 
-    def summarize_course(self, summaries, existing_course_summary):
-        system_prompt = self.get_combine_system_prompt()
-        prompt = f"{system_prompt}\n\n EXISTING SUMMARY:\n{existing_course_summary} \n\nSUMMARIES:\n{summaries}"
-        response = self.groq_model.predict(prompt)
-        return response
+    # def summarize_course(self, summaries, existing_course_summary):
+    #     system_prompt = self.get_combine_system_prompt()
+    #     prompt = f"{system_prompt}\n\n EXISTING SUMMARY:\n{existing_course_summary} \n\nSUMMARIES:\n{summaries}"
+    #     response = self.groq_model.predict(prompt)
+    #     return response
     
     def save_document_summary(self, file_id, extracted_text):
         try:
@@ -234,14 +231,57 @@ class GroqCorseSummarizer:
             print("Failed save_document_summary")
             print(e)
 
-    def save_course_summary(self, course_id, extracted_text, existing_course_summary):
+    # def save_course_summary(self, course_id, extracted_text, existing_course_summary):
+    #     try:
+    #         document_summary = self.summarize_document(extracted_text)
+    #         course_summary = self.summarize_course(document_summary, existing_course_summary)
+    #         if self.mongodb.set_course_summary(course_id, course_summary):
+    #             print("Done save_course_summary")
+    #         else:
+    #             print("Failed save_course_summary")
+    #     except Exception as e:
+    #         print("Failed save_course_summary")
+    #         print(e)
+
+
+class GroqQuizGenerator:
+    def __init__(self):
+        self.groq_model = self.initialize_chatbot()
+
+    def initialize_chatbot(self):
+        """Initialize the Groq chatbot."""
+        return get_groq_model(groq_api_key, model)
+
+    def generate_quiz(self, course_summary):
+        """Generate 10 multiple-choice questions using the given course summary."""
+        prompt = f"""
+        Create 10 multiple-choice questions based on the following course summary:
+        {course_summary}
+
+        Strictly follow these rules:
+        1. Questions should be conceptual and challenging.
+        2. Use keywords from the course summary to formulate questions.
+        3. Avoid unnecessary or trivial questions.
+
+        Format for each question:
+        Q: [Question]
+        A. Option 1
+        B. Option 2
+        C. Option 3
+        D. Option 4
+        Answer: [Correct Option]
+
+        Example:
+        Q: What is the capital of France?
+        A. Paris
+        B. London
+        C. Berlin
+        D. Rome
+        Answer: A. Paris
+        """
         try:
-            document_summary = self.summarize_document(extracted_text)
-            course_summary = self.summarize_course(document_summary, existing_course_summary)
-            if self.mongodb.set_course_summary(course_id, course_summary):
-                print("Done save_course_summary")
-            else:
-                print("Failed save_course_summary")
+            response = self.groq_model.predict(prompt)
+            return response
         except Exception as e:
-            print("Failed save_course_summary")
-            print(e)
+            print(f"Error during quiz generation: {e}")
+            return None
