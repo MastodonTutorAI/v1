@@ -1,11 +1,6 @@
-# import os
-# import json
 import streamlit as st
 from dotenv import load_dotenv
-# from huggingface_hub import hf_hub_download
-# from llama_cpp import Llama
 import re
-# from utils.groq_util_module import GroqQuizGenerator
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,10 +10,6 @@ st.title("Quiz Generator")
 st.write("Generate a quiz for selected course to practice your knowledge!")
 
 service = st.session_state.service
-
-# Model configuration
-# REPO_ID = "unsloth/Llama-3.2-1B-Instruct-GGUF"
-# MODEL_FILENAME = "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
 
 # Initialize Streamlit session state
 if "questions" not in st.session_state:
@@ -30,31 +21,6 @@ if "correct_answers" not in st.session_state:
 if "user_answers" not in st.session_state:
     st.session_state.user_answers = {}
 
-# if "model_loaded" not in st.session_state:
-#     with st.spinner("Downloading and loading the model..."):
-#         def download_model(repo_id, model_filename, save_dir=None):
-#             try:
-#                 model_path = hf_hub_download(
-#                     repo_id=repo_id, filename=model_filename, cache_dir=save_dir
-#                 )
-#                 return model_path
-#             except Exception as e:
-#                 st.error(f"Error downloading the model: {e}")
-#                 return None
-
-#         MODEL_PATH = download_model(REPO_ID, MODEL_FILENAME)
-#         if MODEL_PATH and os.path.exists(MODEL_PATH):
-#             try:
-#                 st.session_state.llm = Llama(model_path=MODEL_PATH)
-#                 st.session_state.model_loaded = True
-#                 st.success("Model loaded successfully!")
-#             except Exception as e:
-#                 st.error(f"Error loading the model: {e}")
-#                 st.stop()
-#         else:
-#             st.error("Model download failed or file path is invalid.")
-#             st.stop()
-
 def get_courses():
     with st.spinner("Fetching courses..."):
         global courses
@@ -62,7 +28,8 @@ def get_courses():
         courses_cursor = service.get_student_courses(user_id)
         courses = {}
         for course in courses_cursor:
-            courses[course['course_id']] = course 
+            if course['course_summary'] != '':
+                courses[course['course_id']] = course 
         st.session_state.courses = dict(courses)
 
 # Function to extract summaries from JSON

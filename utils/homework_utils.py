@@ -1,6 +1,4 @@
 from sentence_transformers import CrossEncoder  
-# from data.mongodb_handler import MongoDBHandler
-# from data.embedding_handler import ChromaDBManager
 
 class HomeworkUtils:
     def __init__(self, course_id, homework_files_ids, service):
@@ -31,7 +29,7 @@ class HomeworkUtils:
         print("Relevance Scores in %:", percentage_scores)
         
         for i, score in enumerate(percentage_scores):
-            if score > 20:
+            if score > 40:
                 return True
         return False
 
