@@ -83,7 +83,6 @@ def extract_text_from_pdf(file):
                     continue
 
     text_content = clean_extracted_text(text_content)
-    print(text_content)
     return text_content
 
 
@@ -130,7 +129,6 @@ def extract_text_from_ppt(file_content):
         raise RuntimeError(f"Error processing PPTX file: {e}")
 
     text_content = clean_extracted_text(text_content)
-    print(text_content)
     return text_content
 
 
@@ -163,7 +161,6 @@ def extract_text_from_doc(file):
         raise RuntimeError(f"Error processing text file: {e}")
 
     text_content = clean_extracted_text(text_content)
-    print(text_content)
     return text_content
 
 
@@ -178,7 +175,6 @@ def extract_text_from_text(file):
     except Exception as e:
         raise RuntimeError(f"Error processing document file: {e}")
     text_content = clean_extracted_text(text_content)
-    print(text_content)
     return text_content
 
 

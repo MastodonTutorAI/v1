@@ -1,9 +1,9 @@
 from sentence_transformers import CrossEncoder  
-from data.mongodb_handler import MongoDBHandler
-from data.embedding_handler import ChromaDBManager
+# from data.mongodb_handler import MongoDBHandler
+# from data.embedding_handler import ChromaDBManager
 
 class HomeworkUtils:
-    def __init__(self, course_id, homework_files_ids):
+    def __init__(self, course_id, homework_files_ids, service):
         """
         Initialize the HomeworkUtils class with necessary dependencies.
         
@@ -12,8 +12,8 @@ class HomeworkUtils:
         :param mongodb: An instance of MongoDB handler for accessing homework file IDs
         """
         self.course_id = course_id
-        self.chroma_db_manager = ChromaDBManager()
-        self.mongodb = MongoDBHandler()
+        self.chroma_db_manager = service.chroma_db_manager
+        self.mongodb = service.mongodb
         self.homework_files_ids = homework_files_ids
         self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L-6")
 
@@ -31,7 +31,7 @@ class HomeworkUtils:
         print("Relevance Scores in %:", percentage_scores)
         
         for i, score in enumerate(percentage_scores):
-            if score > 50:
+            if score > 20:
                 return True
         return False
 
@@ -43,9 +43,11 @@ class HomeworkUtils:
         :return: True if the query is related to homework, False otherwise
         """
         search_results = self.search_vector_homework(user_query, top_k=10)
-        chunks = [result.page_content for result in search_results]
-        return self.cross_encoder_similarity_batch(user_query, chunks)
-
+        if search_results:
+            chunks = [result.page_content for result in search_results]
+            return self.cross_encoder_similarity_batch(user_query, chunks)
+        return False
+    
     def search_vector_homework(self, query_text, top_k=5):
         """
         Searches for similar vectors in the ChromaDB vector store based on the query.
@@ -55,12 +57,14 @@ class HomeworkUtils:
         :return: A list of search results
         """
         homework_files_ids = self.homework_files_ids
-        return self.chroma_db_manager.search_vector_by_document_id(
-            course_id=self.course_id,
-            query_text=query_text,
-            k=top_k,
-            document_ids=homework_files_ids
-        )
+        if homework_files_ids:
+            return self.chroma_db_manager.search_vector_by_document_id(
+                course_id=self.course_id,
+                query_text=query_text,
+                k=top_k,
+                document_ids=homework_files_ids
+            )
+        return None
 
     def search_vector_homework_with_scores(self, query_text, top_k=5):
         """

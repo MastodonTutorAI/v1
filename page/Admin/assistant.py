@@ -89,8 +89,8 @@ def show_conversation():
 
     if st.session_state.messages == []:
         response = st.session_state.conversation_manager.get_response(
-                user_input="Greet Me in short",
-                context="",
+                user_input="Greet me in short.",
+                context="skip",
                 selected_conversation=None
             )
         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -111,14 +111,14 @@ def show_assistant():
         
         with st.spinner("Loading..."):
             response = st.session_state.conversation_manager.get_response(
-                user_input="Greet Me in short",
-                context=service.search_vector("", 5),
+                user_input="Greet me in short.",
+                context="skip",
                 selected_conversation=None
             )
             st.session_state.messages.append({"role": "assistant", "content": response})
 
     show_conversation()
-
+    
     if input := st.chat_input("What's on your mind?"):
         st.session_state.messages.append({"role": "user", "content": input})
         with st.chat_message("user"):

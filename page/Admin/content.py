@@ -93,6 +93,15 @@ def show_content():
                 st.error("Please upload valid files.")
     show_table()
 
+def set_course_after_update():
+    courses_cursor = service.get_courses(st.session_state.user['_id'])
+    courses = {}
+    for course in courses_cursor:
+        course_id = course['course_id']
+        if st.session_state['selected_course']['course_id'] == course_id:
+            print('Fetched Updated Course')
+            st.session_state['selected_course'] = course
+    service.set_course_details(st.session_state['selected_course'])
 
 @st.fragment
 def show_table():
@@ -150,6 +159,7 @@ def show_table():
                         if service.set_assistant_available(file_id, document_summary, value):
                             st.toast(
                                 'Availability updated for file: ' + file_name)
+                            set_course_after_update()
                             time.sleep(0.5)
                             st.rerun()
                         else:

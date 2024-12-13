@@ -47,13 +47,14 @@ def get_courses():
 
 @st.fragment
 def course_row(course):
-    with st.container(border=True, height=400):
-        st.subheader(course['course_name'])
-        st.write(f"**Professor:** {course['professor_name']}")
-        st.write(f"**Course Id:** {course['course_id']}")
-        st.write(f"**Description:** {course['description']}")
-        cols = st.columns([1, 6])
-        cols[0].success("**Status:** Active", icon="✅")
+    with st.container(border=True):
+        with st.container(border = False , height=300):
+            st.subheader(course['course_name'])
+            st.write(f"**Professor:** {course['professor_name']}")
+            st.write(f"**Course Id:** {course['course_id']}")
+            st.write(f"**Description:** {course['description']}")
+            cols = st.columns([1, 6])
+            cols[0].success("**Status:** Active", icon="✅")
 
         st.divider()
         cols = st.columns([1, 1, 1, 6])

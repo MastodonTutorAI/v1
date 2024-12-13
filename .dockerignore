@@ -1,0 +1,10 @@
+.git
+__pycache__
+.DS_Store
+node_modules
+*.log
+data/__pycache__
+service/__pycache__
+page/Admin/__pycache__
+page/html_template/__pycache__
+utils/__pycache__

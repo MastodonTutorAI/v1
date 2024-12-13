@@ -48,7 +48,6 @@ def course_row(course):
         
 def show_courses():
     with st.container(border=False):
-        print(st.session_state.courses)
         if st.session_state.courses:
             for course_id, course in st.session_state.courses.items():  # Iterate over key-value pairs
                 course_row(course)

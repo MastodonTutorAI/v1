@@ -19,7 +19,7 @@ def login():
 
     m_colm1.markdown("<div style='height: 80px;'></div>", unsafe_allow_html=True)
     
-    m_colm1.image("assets\pfw.png", caption="")
+    m_colm1.image("assets/pfw.png", caption="")
 
     m_colm3.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
     

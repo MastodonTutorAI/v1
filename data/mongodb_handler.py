@@ -401,7 +401,6 @@ class MongoDBHandler:
                 extracted_text = " ".join(extracted_text)
 
             # Convert extracted text to lowercase for case-insensitive matching
-            print(f"Extracted text: {extracted_text}")
             extracted_text_lower = extracted_text.lower()
 
             # Use regular expressions to match exact keywords

@@ -133,7 +133,7 @@ class ChromaDBManager:
         """
         try:
             # Step 1: Check if the query is a question
-            question_words = {'who', 'what', 'why', 'where', 'when', 'how', 'which', 'whose', 'whom', 'explain', 'describe', 'define', 'list', 'solve', 'give'}
+            question_words = {'who', 'what', 'why', 'where', 'when', 'how', 'which', 'whose', 'whom', 'explain', 'describe', 'define', 'list', 'solve', 'give', 'want', 'use'}
             doc = self.nlp(query_text)
             
             # Check for common question patterns
@@ -162,7 +162,7 @@ class ChromaDBManager:
             query_text = str(query_text)
             if not self.is_question_related(query_text,course_id):
                 print("Unrelated question.")
-                return "No Context."
+                return "No Context"
             course_db = self.get_course_db(course_id)
             results = course_db.similarity_search(query_text, k, filter=filters)
             return [result.page_content.split('\n') for result in results]

@@ -18,6 +18,7 @@ class Service:
         self.mongodb = MongoDBHandler()
         self.chroma_db_manager = ChromaDBManager()
         self.summarizer = groq_model.GroqCorseSummarizer(self.mongodb)
+        self.quiz_generator = groq_model.GroqQuizGenerator()
         print('Service initialized')
         
     def set_course_id(self, course_id):
@@ -188,7 +189,7 @@ class Service:
     def get_model_conversation(self):
         course_id = self.course_id
         homework_files_ids = self.get_homework_file_ids()
-        return groq_model.GroqConversationManager(self.course_name, self.course_summary, course_id, homework_files_ids)
+        return groq_model.GroqConversationManager(service=self, course_name=self.course_name,course_summary= self.course_summary, course_id=course_id, homework_files_ids=homework_files_ids)
     
     def get_homework_file_ids(self):
         return self.mongodb.get_homework_file_ids(self.course_id)
