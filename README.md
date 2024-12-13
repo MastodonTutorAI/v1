@@ -1,5 +1,12 @@
 # Deep Learning Project: Mastodon TutorAI
 
+A web-based assistant designed for students and professors, offering personalized support based on course materials. The user interface is developed using Streamlit, with conversations and files stored in MongoDB, while vector storage is managed via ChromaDB.
+
+This project is part of the ***Deep Learning*** course at ***Purdue University Fort Wayne***, under the guidance of ***Professor Zesheng Chen***. Its primary goal is to empower students by providing an AI assistant that enhances their learning experience and serves as a virtual teaching assistant for the professor.
+
+![Login Page](https://github.com/MastodonTutorAI/v1/blob/deployment/assets/ss1.png)
+![Demo](https://github.com/MastodonTutorAI/v1/blob/deployment/assets/video.gif)
+
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" alt="Python">
   <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
@@ -8,10 +15,6 @@
   <img src="https://img.shields.io/badge/ChromaDB-00ADD8?style=for-the-badge&logo=chromadb&logoColor=white" alt="ChromaDB">
   <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
 </p>
-
-A web-based assistant designed for students and professors, offering personalized support based on course materials. The user interface is developed using Streamlit, with conversations and files stored in MongoDB, while vector storage is managed via ChromaDB.
-
-This project is part of the ***Deep Learning*** course at ***Purdue University Fort Wayne***, under the guidance of ***Professor Zesheng Chen***. Its primary goal is to empower students by providing an AI assistant that enhances their learning experience and serves as a virtual teaching assistant for the professor.
 
 ## Features
 - ### Two Roles:
